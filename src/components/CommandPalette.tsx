@@ -1,0 +1,145 @@
+import { useState, useEffect, useRef, type ReactElement } from 'react'
+import { Box, Text } from 'ink'
+import { useInputInScope } from '../interaction/useInputInScope.js'
+import { useTheme } from '../design-system/ThemeProvider.js'
+import type { ActionRegistry, ActionMatch } from '../commands/ActionRegistry.js'
+
+export interface CommandPaletteProps {
+  registry: ActionRegistry
+  onClose: () => void
+}
+
+export function CommandPalette({ registry, onClose }: CommandPaletteProps) {
+  const [query, setQuery] = useState('')
+  const [selectedIndex, setSelectedIndex] = useState(0)
+  const results = registry.search(query)
+  const { colors } = useTheme()
+
+  useEffect(() => {
+    setSelectedIndex(0)
+  }, [query])
+
+  const ref = useRef({
+    results,
+    selectedIndex,
+    setSelectedIndex,
+    query,
+    setQuery,
+    onClose,
+  })
+  ref.current = {
+    results,
+    selectedIndex,
+    setSelectedIndex,
+    query,
+    setQuery,
+    onClose,
+  }
+
+  useInputInScope(
+    (input, key) => {
+      const h = ref.current
+
+      if (key.escape) {
+        h.onClose()
+        return
+      }
+
+      if (key.return && h.results[h.selectedIndex]) {
+        h.results[h.selectedIndex].action.handler()
+        h.onClose()
+        return
+      }
+
+      if (key.downArrow) {
+        h.setSelectedIndex((prev: number) =>
+          Math.min(prev + 1, h.results.length - 1),
+        )
+        return
+      }
+
+      if (key.upArrow) {
+        h.setSelectedIndex((prev: number) => Math.max(prev - 1, 0))
+        return
+      }
+
+      if (key.backspace) {
+        h.setQuery((prev: string) => prev.slice(0, -1))
+        return
+      }
+
+      if (input.length === 1 && input >= ' ' && input <= '~') {
+        h.setQuery((prev: string) => prev + input)
+      }
+    },
+    'command',
+    [],
+  )
+
+  return (
+    <Box
+      flexDirection="column"
+      borderStyle="round"
+      borderColor={colors.border.default}
+    >
+      <Box>
+        <Text bold color={colors.focus.active}>
+          {'>'}
+        </Text>
+        <Text>{' '}</Text>
+        <Text>{query}</Text>
+        <Text dimColor>|</Text>
+      </Box>
+      <Box flexDirection="column">
+        {renderResults(results, selectedIndex, colors)}
+      </Box>
+    </Box>
+  )
+}
+
+function renderResults(
+  results: ActionMatch[],
+  selectedIndex: number,
+  colors: ReturnType<typeof useTheme>['colors'],
+): ReactElement[] {
+  const elements: ReactElement[] = []
+  let currentCategory = ''
+  let flatIndex = 0
+
+  for (const match of results) {
+    if (match.action.category !== currentCategory) {
+      currentCategory = match.action.category
+      elements.push(
+        <Text key={`cat-${currentCategory}`} bold dimColor>
+          {currentCategory.toUpperCase()}
+        </Text>,
+      )
+    }
+
+    const isSelected = flatIndex === selectedIndex
+    elements.push(
+      <Box key={match.action.id}>
+        <Text
+          color={isSelected ? colors.focus.active : undefined}
+          bold={isSelected}
+        >
+          {isSelected ? '> ' : '  '}
+          {match.action.label}
+        </Text>
+      </Box>,
+    )
+    flatIndex++
+  }
+
+  if (results.length === 0) {
+    elements.push(
+      <Text key="no-results" dimColor>
+        {query
+          ? 'No matching commands found'
+          : 'Type a command or search term'}
+      </Text>,
+    )
+  }
+
+  return elements
+}
