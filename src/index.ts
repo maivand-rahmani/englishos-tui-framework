@@ -20,6 +20,10 @@ export {
   NavigationProvider,
   useNavigation,
 } from './navigation/NavigationProvider.js'
+export {
+  ScreenTransition,
+} from './navigation/ScreenTransition.js'
+export type { ScreenTransitionProps, TransitionType } from './navigation/ScreenTransition.js'
 export type {
   NavigationEntry,
   ModalEntry,
@@ -40,6 +44,8 @@ export { FocusScope, useFocusScope } from './interaction/FocusScope.js'
 export type { FocusScopeProps, FocusScopeContextValue } from './interaction/FocusScope.js'
 export { useFocusable } from './interaction/useFocusable.js'
 export type { UseFocusableOptions, UseFocusableResult } from './interaction/useFocusable.js'
+export { KeyboardRegistry } from './interaction/KeyboardRegistry.js'
+export type { Keybinding } from './interaction/KeyboardRegistry.js'
 export { ActionRegistry } from './commands/ActionRegistry.js'
 export type { Action, ActionMatch } from './commands/ActionRegistry.js'
 export { CommandPalette } from './components/CommandPalette.js'
