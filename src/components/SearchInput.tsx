@@ -1,0 +1,63 @@
+import { useState, useRef } from 'react'
+import { Box, Text } from 'ink'
+import { useInputInScope } from '../interaction/useInputInScope.js'
+import { useTheme } from '../design-system/ThemeProvider.js'
+import type { FocusScope } from '../types.js'
+
+export interface SearchInputProps {
+  value?: string
+  onChange?: (value: string) => void
+  placeholder?: string
+  scope?: FocusScope
+}
+
+export function SearchInput({
+  value: controlledValue,
+  onChange,
+  placeholder = 'Search...',
+  scope = 'textinput',
+}: SearchInputProps) {
+  const isControlled = controlledValue !== undefined
+  const [internalValue, setInternalValue] = useState('')
+  const value = isControlled ? controlledValue : internalValue
+  const { colors } = useTheme()
+
+  const ref = useRef({ value, setInternalValue, onChange, isControlled })
+  ref.current = { value, setInternalValue, onChange, isControlled }
+
+  useInputInScope(
+    (input, key) => {
+      const h = ref.current
+
+      if (key.backspace) {
+        const newValue = h.value.slice(0, -1)
+        if (!h.isControlled) {
+          h.setInternalValue(newValue)
+        }
+        h.onChange?.(newValue)
+        return
+      }
+
+      if (input.length === 1 && input >= ' ' && input <= '~') {
+        const newValue = h.value + input
+        if (!h.isControlled) {
+          h.setInternalValue(newValue)
+        }
+        h.onChange?.(newValue)
+      }
+    },
+    scope,
+    [],
+  )
+
+  return (
+    <Box>
+      {value.length > 0 ? (
+        <Text>{value}</Text>
+      ) : (
+        <Text dimColor>{placeholder}</Text>
+      )}
+      <Text color={colors.focus.ring}>|</Text>
+    </Box>
+  )
+}

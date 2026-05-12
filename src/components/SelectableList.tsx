@@ -1,0 +1,41 @@
+import { Box, Text } from 'ink'
+import { List, type ListItem, type ListProps } from './List.js'
+
+export interface SelectableListProps<T extends ListItem>
+  extends Omit<ListProps<T>, 'items'> {
+  items: T[]
+  filterQuery?: string
+  filterFn?: (item: T, query: string) => boolean
+}
+
+function defaultFilter<T extends ListItem>(
+  item: T,
+  query: string,
+): boolean {
+  const q = query.toLowerCase()
+  return (
+    item.label.toLowerCase().includes(q) ||
+    item.id.toLowerCase().includes(q)
+  )
+}
+
+export function SelectableList<T extends ListItem>({
+  items,
+  filterQuery,
+  filterFn = defaultFilter,
+  ...listProps
+}: SelectableListProps<T>) {
+  const filteredItems = filterQuery
+    ? items.filter((item) => filterFn(item, filterQuery))
+    : items
+
+  if (filteredItems.length === 0) {
+    return (
+      <Box>
+        <Text dimColor>No results</Text>
+      </Box>
+    )
+  }
+
+  return <List {...(listProps as ListProps<T>)} items={filteredItems} />
+}
