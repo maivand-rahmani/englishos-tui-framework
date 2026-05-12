@@ -1,5 +1,4 @@
 import { useState, useCallback, useRef } from 'react'
-import { useTheme } from '../design-system/ThemeProvider.js'
 import { useInputInScope } from '../interaction/useInputInScope.js'
 import { ConfirmModal } from './ConfirmModal.js'
 

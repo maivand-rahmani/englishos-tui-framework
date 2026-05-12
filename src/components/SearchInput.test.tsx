@@ -14,7 +14,7 @@ function delay(ms = 50) {
 }
 
 async function typeChars(
-  stdin: { write: (d: string) => boolean },
+  stdin: { write: (d: string) => void },
   text: string,
 ) {
   for (const ch of text) {
