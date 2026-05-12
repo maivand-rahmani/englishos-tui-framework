@@ -16,6 +16,16 @@ export type { DividerProps } from './components/Divider.js'
 export { Spacer } from './components/Spacer.js'
 export type { SpacerProps } from './components/Spacer.js'
 export type { ScreenDefinition, ScreenCategory } from './screens/screen.js'
+export {
+  NavigationProvider,
+  useNavigation,
+} from './navigation/NavigationProvider.js'
+export type {
+  NavigationEntry,
+  ModalEntry,
+  NavigationContextValue,
+  NavigationProviderProps,
+} from './navigation/NavigationProvider.js'
 export { ScreenRegistry } from './screens/registry.js'
 export { ScreenProvider, useScreen, ScreenRenderer } from './screens/ScreenProvider.js'
 export { StatusBar } from './components/StatusBar.js'
