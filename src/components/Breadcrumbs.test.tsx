@@ -159,7 +159,7 @@ describe('Breadcrumbs', () => {
   })
 
   it('renders a specific onSelect is passed as function', () => {
-    let capturedOnSelect: ((id: string) => void) | null = null
+    let capturedOnSelect: string | null = null
     function Harness() {
       return (
         <Breadcrumbs

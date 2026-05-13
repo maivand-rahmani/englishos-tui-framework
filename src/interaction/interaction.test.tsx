@@ -69,11 +69,15 @@ describe('KeyboardScopeProvider', () => {
     const modalCalls: string[] = []
 
     function NavHandler() {
-      useInputInScope((input) => navCalls.push(input), 'navigation')
+      useInputInScope((input) => {
+        navCalls.push(input)
+      }, 'navigation')
       return null
     }
     function ModalHandler() {
-      useInputInScope((input) => modalCalls.push(input), 'modal')
+      useInputInScope((input) => {
+        modalCalls.push(input)
+      }, 'modal')
       return null
     }
 
@@ -109,7 +113,9 @@ describe('KeyboardScopeProvider', () => {
     const listCalls: string[] = []
 
     function ListHandler() {
-      useInputInScope((input) => listCalls.push(input), 'list')
+      useInputInScope((input) => {
+        listCalls.push(input)
+      }, 'list')
       return null
     }
 
