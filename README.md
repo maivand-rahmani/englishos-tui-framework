@@ -1,4 +1,4 @@
-# @maivand-rahmani/tui-framework
+# englishos-tui-framework
 
 Reusable Ink/React framework for building terminal applications.
 
@@ -7,7 +7,7 @@ This package is currently in **public beta** (`0.x`).
 ## Install
 
 ```bash
-npm install @maivand-rahmani/tui-framework@beta
+npm install englishos-tui-framework@beta
 ```
 
 ## Quickstart
@@ -22,7 +22,7 @@ import {
   ScreenRegistry,
   ScreenRenderer,
   useNavigationState,
-} from '@maivand-rahmani/tui-framework'
+} from 'englishos-tui-framework'
 
 const registry = new ScreenRegistry()
 registry.register({
@@ -78,12 +78,12 @@ This order ensures scope-aware keyboard dispatch, navigation state, and modal is
 - Experimental APIs are exposed under:
 
 ```ts
-import { experimental } from '@maivand-rahmani/tui-framework'
+import { experimental } from 'englishos-tui-framework'
 ```
 
 ## Migration Notes (from internal `@tui/framework`)
 
-1. Rename imports to `@maivand-rahmani/tui-framework`.
+1. Rename imports to `englishos-tui-framework`.
 2. Replace manual provider composition with `FrameworkProvider`.
 3. For advanced keyboard arbitration, migrate from `useInputInScope` to `useScopedInputInScope`.
 4. `ScreenTransition` moved to the `experimental` namespace.
