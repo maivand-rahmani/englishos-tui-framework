@@ -1,5 +1,11 @@
 # englishos-tui-framework
 
+## 0.1.1
+
+### Patch Changes
+
+- [#8](https://github.com/maivand-rahmani/englishos-tui-framework/pull/8) [`3575cc5`](https://github.com/maivand-rahmani/englishos-tui-framework/commit/3575cc5199f68b43aec6c87b4ae57006ce30e406) Thanks [@maivand-rahmani](https://github.com/maivand-rahmani)! - Switch release publishing from beta-tag-only flow to stable latest releases by default, while preserving optional beta publish support.
+
 ## 0.1.0
 
 ### Minor Changes
