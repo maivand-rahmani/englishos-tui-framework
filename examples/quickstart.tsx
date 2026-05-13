@@ -15,7 +15,7 @@ registry.register({
   title: 'Home',
   sidebar: true,
   category: 'main',
-  component: () => <Text>Hello from @englishos/tui-framework</Text>,
+  component: () => <Text>Hello from @maivand-rahmani/tui-framework</Text>,
 })
 
 function Shell() {
