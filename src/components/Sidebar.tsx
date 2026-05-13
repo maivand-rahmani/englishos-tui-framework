@@ -1,35 +1,31 @@
 import { useEffect } from 'react'
 import type { ReactNode } from 'react'
 import { Box, Text, useWindowSize } from 'ink'
-import { LAYOUT, SCREEN_CATEGORIES } from '../constants.js'
+import { LAYOUT } from '../constants.js'
 import { useTheme } from '../design-system/ThemeProvider.js'
 import { FocusScope } from '../interaction/FocusScope.js'
 import { useFocusable } from '../interaction/useFocusable.js'
 import { useNavigation } from '../navigation/NavigationProvider.js'
 
-export type SidebarCategory = keyof typeof SCREEN_CATEGORIES
-
 export interface SidebarItem {
   id: string
   label: string
   description?: string
-  category: SidebarCategory
+  category?: string
 }
 
-export type SidebarSectionTitles = Partial<Record<SidebarCategory, string>>
+export type SidebarSectionTitles = Record<string, string>
 
 export interface SidebarProps {
   items: SidebarItem[]
   sectionTitles?: SidebarSectionTitles
   columns?: number
+  categoryOrder?: string[]
+  screenOrderByCategory?: Record<string, string[]>
   footer?: ReactNode
 }
 
-const DEFAULT_SECTION_TITLES: Record<SidebarCategory, string> = {
-  main: 'MAIN',
-  learning: 'LEARNING',
-  system: 'SYSTEM',
-}
+const DEFAULT_CATEGORY = 'default'
 
 function SidebarEntry({
   item,
@@ -72,6 +68,8 @@ export function Sidebar({
   items,
   sectionTitles,
   columns: columnsOverride,
+  categoryOrder,
+  screenOrderByCategory,
   footer,
 }: SidebarProps) {
   const { columns: detectedColumns } = useWindowSize()
@@ -82,15 +80,29 @@ export function Sidebar({
   const hasActiveItem = items.some((item) => item.id === currentScreenId)
   const inputOrder = new Map(items.map((item, index) => [item.id, index]))
 
-  const groupedItems = (
-    Object.keys(SCREEN_CATEGORIES) as SidebarCategory[]
-  ).map((category) => {
-    const categoryOrder = SCREEN_CATEGORIES[category] as readonly string[]
+  const allCategories = new Set<string>([
+    ...(categoryOrder ?? []),
+    ...items.map((item) => item.category ?? DEFAULT_CATEGORY),
+  ])
+
+  const orderedCategories = [...allCategories].sort((left, right) => {
+    const leftIndex = categoryOrder?.indexOf(left) ?? -1
+    const rightIndex = categoryOrder?.indexOf(right) ?? -1
+    if (leftIndex !== -1 || rightIndex !== -1) {
+      if (leftIndex === -1) return 1
+      if (rightIndex === -1) return -1
+      return leftIndex - rightIndex
+    }
+    return left.localeCompare(right)
+  })
+
+  const groupedItems = orderedCategories.map((category) => {
+    const screenOrder = screenOrderByCategory?.[category] ?? []
     const ordered = items
-      .filter((item) => item.category === category)
+      .filter((item) => (item.category ?? DEFAULT_CATEGORY) === category)
       .sort((left, right) => {
-        const leftCategoryIndex = categoryOrder.indexOf(left.id)
-        const rightCategoryIndex = categoryOrder.indexOf(right.id)
+        const leftCategoryIndex = screenOrder.indexOf(left.id)
+        const rightCategoryIndex = screenOrder.indexOf(right.id)
         const leftIndex =
           leftCategoryIndex === -1 ? Number.MAX_SAFE_INTEGER : leftCategoryIndex
         const rightIndex =
@@ -128,7 +140,7 @@ export function Sidebar({
               }
             >
               <Text bold color={theme.colors.text.muted}>
-                {sectionTitles?.[category] ?? DEFAULT_SECTION_TITLES[category]}
+                {sectionTitles?.[category] ?? category.toUpperCase()}
               </Text>
               {categoryItems.map((item) => (
                 <SidebarEntry

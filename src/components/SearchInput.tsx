@@ -35,7 +35,7 @@ export function SearchInput({
           h.setInternalValue(newValue)
         }
         h.onChange?.(newValue)
-        return
+        return true
       }
 
       if (input.length === 1 && input >= ' ' && input <= '~') {
@@ -44,10 +44,11 @@ export function SearchInput({
           h.setInternalValue(newValue)
         }
         h.onChange?.(newValue)
+        return true
       }
     },
     scope,
-    [],
+    { priority: 60 },
   )
 
   return (

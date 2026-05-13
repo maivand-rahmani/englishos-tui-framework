@@ -1,22 +1,4 @@
-import type { ScreenId, FocusScope } from './types.js'
-
-export const SCREEN_CATEGORIES = {
-  main: ['dashboard', 'plan'] as ScreenId[],
-  learning: ['lessons', 'lessonDetail', 'speak', 'write', 'stats', 'review'] as ScreenId[],
-  system: ['log', 'config', 'terminal'] as ScreenId[],
-} as const
-
-export const DEFAULT_SHORTCUTS: Record<string, ScreenId> = {
-  b: 'dashboard',
-  l: 'lessons',
-  s: 'speak',
-  w: 'write',
-  t: 'stats',
-  r: 'review',
-  c: 'config',
-  g: 'log',
-  x: 'terminal',
-} as const
+import type { BuiltinFocusScope, FocusScope } from './types.js'
 
 export const LAYOUT = {
   narrow: 80,
@@ -25,10 +7,17 @@ export const LAYOUT = {
   listMaxVisible: 10,
 } as const
 
-export const FOCUS_SCOPE_PRIORITY: Record<FocusScope, number> = {
+export const FOCUS_SCOPE_PRIORITY: Record<BuiltinFocusScope, number> = {
   modal: 0,
   command: 1,
   textinput: 2,
   list: 3,
   navigation: 4,
 } as const
+
+export function getScopePriority(scope: FocusScope): number {
+  if (scope in FOCUS_SCOPE_PRIORITY) {
+    return FOCUS_SCOPE_PRIORITY[scope as BuiltinFocusScope]
+  }
+  return 100
+}

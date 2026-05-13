@@ -1,4 +1,5 @@
 import type { FocusScope } from '../types.js'
+import { getScopePriority } from '../constants.js'
 
 export interface Keybinding {
   keys: string
@@ -49,14 +50,7 @@ export class KeyboardRegistry {
   }
 
   getScopePriority(scope: FocusScope): number {
-    const priorities: Record<FocusScope, number> = {
-      modal: 0,
-      command: 1,
-      textinput: 2,
-      list: 3,
-      navigation: 4,
-    }
-    return priorities[scope]
+    return getScopePriority(scope)
   }
 
   getByPriority(): Keybinding[] {

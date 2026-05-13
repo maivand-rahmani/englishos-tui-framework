@@ -4,7 +4,7 @@ import { LAYOUT } from '../constants.js'
 
 export interface StatusBarProps {
   mode?: string
-  shortcuts?: { key: string; description: string }[]
+  shortcuts?: { key?: string; keys?: string; description: string; scope?: string }[]
   columns?: number
 }
 
@@ -33,11 +33,14 @@ export function StatusBar({
       </Box>
 
       <Box flexDirection="row" gap={theme.spacing.sm}>
-        {displayShortcuts.map(({ key, description }) => (
-          <Text key={key} color={theme.colors.text.secondary}>
-            [{key}] {description}
-          </Text>
-        ))}
+        {displayShortcuts.map((shortcut, index) => {
+          const keyLabel = shortcut.keys ?? shortcut.key ?? ''
+          return (
+            <Text key={`${keyLabel}-${index}`} color={theme.colors.text.secondary}>
+              [{keyLabel}] {shortcut.description}
+            </Text>
+          )
+        })}
       </Box>
     </Box>
   )

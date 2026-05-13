@@ -454,7 +454,7 @@ describe('NavigationProvider', () => {
 })
 
 describe('useNavigation()', () => {
-  it('does not crash render when used outside NavigationProvider', () => {
+  it('throws when used outside NavigationProvider', () => {
     function Consumer() {
       useNavigation()
       return <Text>should not render</Text>

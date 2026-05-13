@@ -6,15 +6,42 @@ import {
   useRef,
   type ReactNode,
 } from 'react'
-import { useInput } from 'ink'
+import { useInput, type Key } from 'ink'
 import type { FocusScope } from '../types.js'
+import { getScopePriority } from '../constants.js'
 
-type InputHandler = (input: string, key: Record<string, boolean>) => void
+export interface ScopedInputEvent {
+  input: string
+  key: Key
+  scope: FocusScope
+  stopPropagation: () => void
+  isPropagationStopped: boolean
+}
+
+export type InputHandler = (event: ScopedInputEvent) => void | boolean
+
+interface RegisteredHandler {
+  id: number
+  priority: number
+  handler: InputHandler
+}
+
+export interface RegisterHandlerOptions {
+  priority?: number
+}
 
 export interface KeyboardScopeContextValue {
   activeScope: FocusScope
+  activeScopes: FocusScope[]
   activateScope: (scope: FocusScope) => void
-  registerHandler: (scope: FocusScope, handler: InputHandler) => () => void
+  pushScope: (scope: FocusScope) => void
+  popScope: (scope?: FocusScope) => void
+  isScopeActive: (scope: FocusScope) => boolean
+  registerHandler: (
+    scope: FocusScope,
+    handler: InputHandler,
+    options?: RegisterHandlerOptions,
+  ) => () => void
 }
 
 const KeyboardScopeContext =
@@ -25,43 +52,127 @@ export interface KeyboardScopeProviderProps {
   defaultScope?: FocusScope
 }
 
+function sortActiveScopes(scopes: FocusScope[]): FocusScope[] {
+  return [...scopes].sort((left, right) => {
+    const priorityDiff = getScopePriority(left) - getScopePriority(right)
+    if (priorityDiff !== 0) return priorityDiff
+    return left.localeCompare(right)
+  })
+}
+
 export function KeyboardScopeProvider({
   children,
   defaultScope = 'navigation',
 }: KeyboardScopeProviderProps) {
-  const [activeScope, setActiveScope] = useState<FocusScope>(defaultScope)
+  const [activeScopes, setActiveScopes] = useState<FocusScope[]>([defaultScope])
   const handlersRef =
-    useRef<Map<FocusScope, Set<InputHandler>>>(new Map())
+    useRef<Map<FocusScope, RegisteredHandler[]>>(new Map())
+  const activeScopesRef = useRef<FocusScope[]>(activeScopes)
+  activeScopesRef.current = activeScopes
+  const registrationCounterRef = useRef(0)
 
   useInput((input, key) => {
-    const handlers = handlersRef.current.get(activeScope)
-    if (handlers) {
-      for (const handler of handlers) {
-        handler(input, key)
+    const scopes = sortActiveScopes(activeScopesRef.current)
+
+    for (const scope of scopes) {
+      const handlers = handlersRef.current.get(scope)
+      if (!handlers || handlers.length === 0) continue
+
+      const orderedHandlers = [...handlers].sort((left, right) => {
+        const priorityDiff = right.priority - left.priority
+        if (priorityDiff !== 0) return priorityDiff
+        return left.id - right.id
+      })
+
+      for (const registered of orderedHandlers) {
+        let stopped = false
+        const event: ScopedInputEvent = {
+          input,
+          key,
+          scope,
+          stopPropagation: () => {
+            stopped = true
+          },
+          get isPropagationStopped() {
+            return stopped
+          },
+        }
+
+        const consumed = registered.handler(event)
+        if (consumed === true || stopped) {
+          return
+        }
       }
     }
   })
 
   const registerHandler = useCallback(
-    (scope: FocusScope, handler: InputHandler) => {
-      if (!handlersRef.current.has(scope)) {
-        handlersRef.current.set(scope, new Set())
-      }
-      handlersRef.current.get(scope)!.add(handler)
+    (
+      scope: FocusScope,
+      handler: InputHandler,
+      options: RegisterHandlerOptions = {},
+    ) => {
+      const handlers = handlersRef.current.get(scope) ?? []
+      const id = registrationCounterRef.current++
+      handlersRef.current.set(scope, [
+        ...handlers,
+        {
+          id,
+          handler,
+          priority: options.priority ?? 0,
+        },
+      ])
+
       return () => {
-        handlersRef.current.get(scope)?.delete(handler)
+        const currentHandlers = handlersRef.current.get(scope)
+        if (!currentHandlers) return
+        handlersRef.current.set(
+          scope,
+          currentHandlers.filter((candidate) => candidate.id !== id),
+        )
       }
     },
     [],
   )
 
   const activateScope = useCallback((scope: FocusScope) => {
-    setActiveScope(scope)
+    setActiveScopes([scope])
   }, [])
+
+  const pushScope = useCallback((scope: FocusScope) => {
+    setActiveScopes((prev) => {
+      if (prev.includes(scope)) return prev
+      return [scope, ...prev]
+    })
+  }, [])
+
+  const popScope = useCallback((scope?: FocusScope) => {
+    setActiveScopes((prev) => {
+      if (prev.length <= 1) return prev
+      if (scope == null) return prev.slice(1)
+      const next = prev.filter((candidate) => candidate !== scope)
+      return next.length === 0 ? prev : next
+    })
+  }, [])
+
+  const isScopeActive = useCallback(
+    (scope: FocusScope) => activeScopesRef.current.includes(scope),
+    [],
+  )
+
+  const activeScope = sortActiveScopes(activeScopes)[0] ?? defaultScope
 
   return (
     <KeyboardScopeContext.Provider
-      value={{ activeScope, activateScope, registerHandler }}
+      value={{
+        activeScope,
+        activeScopes,
+        activateScope,
+        pushScope,
+        popScope,
+        isScopeActive,
+        registerHandler,
+      }}
     >
       {children}
     </KeyboardScopeContext.Provider>

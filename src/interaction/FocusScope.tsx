@@ -8,7 +8,8 @@ import {
   type ReactNode,
 } from 'react'
 import type { FocusScope as FocusScopeType } from '../types.js'
-import { useInputInScope } from './useInputInScope.js'
+import { useScopedInputInScope } from './useInputInScope.js'
+import { useKeyboardScope } from './KeyboardScopeProvider.js'
 
 export interface FocusScopeContextValue {
   focusedId: string | null
@@ -34,6 +35,7 @@ export function FocusScope({
   autoFocus = false,
   onActivate,
 }: FocusScopeProps) {
+  const { isScopeActive } = useKeyboardScope()
   const [focusedId, setFocusedId] = useState<string | null>(null)
   const [items, setItems] = useState<string[]>([])
   const onActivateRef = useRef(onActivate)
@@ -43,9 +45,13 @@ export function FocusScope({
 
   const register = useCallback(
     (id: string) => {
-      setItems((prev) => [...prev, id])
+      setItems((prev) => {
+        if (prev.includes(id)) return prev
+        return [...prev, id]
+      })
       return () => {
-        setItems((prev) => prev.filter((i) => i !== id))
+        setItems((prev) => prev.filter((candidate) => candidate !== id))
+        setFocusedId((prev) => (prev === id ? null : prev))
       }
     },
     [],
@@ -95,18 +101,26 @@ export function FocusScope({
     }
   }, [autoFocus, focusedId, items])
 
-  useInputInScope(
-    (input, key) => {
+  useScopedInputInScope(
+    (event) => {
+      const { key } = event
       if (key.upArrow) {
         focusPrev()
+        event.stopPropagation()
+        return true
       } else if (key.downArrow) {
         focusNext()
+        event.stopPropagation()
+        return true
       } else if (
         key.return &&
-        focusedIdRef.current &&
         onActivateRef.current
       ) {
-        onActivateRef.current(focusedIdRef.current)
+        const targetId = focusedIdRef.current ?? items[0]
+        if (!targetId) return
+        onActivateRef.current(targetId)
+        event.stopPropagation()
+        return true
       }
     },
     scope,
@@ -117,7 +131,7 @@ export function FocusScope({
     focusedId,
     register,
     focus,
-    focused: true,
+    focused: isScopeActive(scope),
     isFirst,
     isLast,
   }

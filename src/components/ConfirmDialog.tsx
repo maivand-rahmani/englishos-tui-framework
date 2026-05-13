@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react'
-import { useInputInScope } from '../interaction/useInputInScope.js'
+import { useScopedInputInScope } from '../interaction/useInputInScope.js'
 import { ConfirmModal } from './ConfirmModal.js'
 
 export interface ConfirmDialogProps {
@@ -28,18 +28,23 @@ export function ConfirmDialog({
   const onCloseRef = useRef(onClose)
   onCloseRef.current = onClose
 
-  useInputInScope(
-    (input, key) => {
+  useScopedInputInScope(
+    (event) => {
+      const { key } = event
       if (key.return) {
         onConfirmRef.current()
         onCloseRef.current()
+        event.stopPropagation()
+        return true
       }
       if (key.escape) {
         onCloseRef.current()
+        event.stopPropagation()
+        return true
       }
     },
     'modal',
-    [],
+    { enabled: isOpen, priority: 200 },
   )
 
   if (!isOpen) return null

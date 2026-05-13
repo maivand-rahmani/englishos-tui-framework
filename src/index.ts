@@ -1,8 +1,10 @@
-// @tui/framework — barrel exports
+// @englishos/tui-framework — stable barrel exports
 export type * from './types.js'
 export * from './constants.js'
 export * from './design-system/tokens.js'
 export { ThemeProvider, useTheme } from './design-system/ThemeProvider.js'
+export { FrameworkProvider } from './FrameworkProvider.js'
+export type { FrameworkProviderProps } from './FrameworkProvider.js'
 export { AppShell } from './components/AppShell.js'
 export type { AppShellProps } from './components/AppShell.js'
 export { Panel } from './components/Panel.js'
@@ -29,15 +31,19 @@ export type { ScreenDefinition, ScreenCategory } from './screens/screen.js'
 export {
   NavigationProvider,
   useNavigation,
+  useNavigationState,
+  useNavigationActions,
+  useModalState,
+  useModalActions,
 } from './navigation/NavigationProvider.js'
-export {
-  ScreenTransition,
-} from './navigation/ScreenTransition.js'
-export type { ScreenTransitionProps, TransitionType } from './navigation/ScreenTransition.js'
 export type {
   NavigationEntry,
   ModalEntry,
   NavigationContextValue,
+  NavigationStateValue,
+  NavigationActionsValue,
+  ModalStateValue,
+  ModalActionsValue,
   NavigationProviderProps,
 } from './navigation/NavigationProvider.js'
 export { ScreenRegistry } from './screens/registry.js'
@@ -54,17 +60,20 @@ export { Sidebar } from './components/Sidebar.js'
 export type {
   SidebarProps,
   SidebarItem,
-  SidebarCategory,
   SidebarSectionTitles,
 } from './components/Sidebar.js'
 export { KeyboardScopeProvider, useKeyboardScope } from './interaction/KeyboardScopeProvider.js'
 export { useInputInScope } from './interaction/useInputInScope.js'
+export { useScopedInputInScope } from './interaction/useInputInScope.js'
+export type {
+  LegacyInputHandler,
+  ScopedInputHandler,
+  UseInputInScopeOptions,
+} from './interaction/useInputInScope.js'
 export { FocusScope, useFocusScope } from './interaction/FocusScope.js'
 export type { FocusScopeProps, FocusScopeContextValue } from './interaction/FocusScope.js'
 export { useFocusable } from './interaction/useFocusable.js'
 export type { UseFocusableOptions, UseFocusableResult } from './interaction/useFocusable.js'
-export { KeyboardRegistry } from './interaction/KeyboardRegistry.js'
-export type { Keybinding } from './interaction/KeyboardRegistry.js'
 export { ActionRegistry } from './commands/ActionRegistry.js'
 export type { Action, ActionMatch } from './commands/ActionRegistry.js'
 export { CommandPalette } from './components/CommandPalette.js'
@@ -85,3 +94,5 @@ export { SearchInput } from './components/SearchInput.js'
 export type { SearchInputProps } from './components/SearchInput.js'
 export { SelectableList } from './components/SelectableList.js'
 export type { SelectableListProps } from './components/SelectableList.js'
+
+export * as experimental from './experimental/index.js'

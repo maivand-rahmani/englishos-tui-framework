@@ -57,15 +57,17 @@ export function Tabs({
         if (currentIndex === -1) return
         const prevIndex = (currentIndex - 1 + currentTabs.length) % currentTabs.length
         currentOnChange(currentTabs[prevIndex].id)
+        return true
       } else if (key.rightArrow) {
         const currentIndex = currentTabs.findIndex((t) => t.id === currentId)
         if (currentIndex === -1) return
         const nextIndex = (currentIndex + 1) % currentTabs.length
         currentOnChange(currentTabs[nextIndex].id)
+        return true
       }
     },
     scope,
-    [tabs, activeTabId, onChange],
+    { deps: [tabs, activeTabId, onChange], priority: 40 },
   )
 
   if (tabs.length === 0) return null

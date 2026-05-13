@@ -1,8 +1,12 @@
-import { useRef, useCallback, type ReactNode } from 'react'
+import { useRef, useCallback, useEffect, type ReactNode } from 'react'
 import { Box, Text } from 'ink'
-import { useNavigation } from '../navigation/NavigationProvider.js'
+import {
+  useModalActions,
+  useModalState,
+} from '../navigation/NavigationProvider.js'
 import { useTheme } from '../design-system/ThemeProvider.js'
-import { useInputInScope } from '../interaction/useInputInScope.js'
+import { useScopedInputInScope } from '../interaction/useInputInScope.js'
+import { useKeyboardScope } from '../interaction/KeyboardScopeProvider.js'
 
 export interface ModalProviderProps {
   children: ReactNode
@@ -10,22 +14,39 @@ export interface ModalProviderProps {
 }
 
 export function ModalProvider({ children, onClose }: ModalProviderProps) {
-  const { isModalOpen, currentModal, popModal, modalStack } = useNavigation()
+  const { isModalOpen, currentModal, currentModalProps, modalStack } = useModalState()
+  const { popModal } = useModalActions()
+  const { pushScope, popScope, isScopeActive } = useKeyboardScope()
   const { colors } = useTheme()
   const onCloseRef = useRef(onClose)
   onCloseRef.current = onClose
 
-  useInputInScope(
-    (input, key) => {
+  useEffect(() => {
+    const modalScopeActive = isScopeActive('modal')
+    if (isModalOpen && !modalScopeActive) {
+      pushScope('modal')
+      return
+    }
+
+    if (!isModalOpen && modalScopeActive) {
+      popScope('modal')
+    }
+  }, [isModalOpen, isScopeActive, popScope, pushScope])
+
+  useScopedInputInScope(
+    (event) => {
+      const { key } = event
       if (key.escape) {
         if (onCloseRef.current) {
           onCloseRef.current()
         }
         popModal()
+        event.stopPropagation()
+        return true
       }
     },
     'modal',
-    [popModal],
+    { deps: [popModal], priority: 100 },
   )
 
   if (!isModalOpen || !currentModal) {
@@ -44,7 +65,11 @@ export function ModalProvider({ children, onClose }: ModalProviderProps) {
           paddingX={1}
           paddingY={1}
         >
-          {currentModal.component()}
+          {currentModal.component({
+            params: {},
+            modalProps: currentModalProps,
+            closeModal: popModal,
+          })}
         </Box>
       </Box>
       {modalStack.length > 1 && (
@@ -60,7 +85,8 @@ export function ModalProvider({ children, onClose }: ModalProviderProps) {
 }
 
 export function useModal() {
-  const { pushModal, popModal, isModalOpen, currentModal } = useNavigation()
+  const { pushModal, popModal } = useModalActions()
+  const { isModalOpen, currentModal } = useModalState()
 
   const openModal = useCallback(
     (screenId: string, props?: Record<string, unknown>) => {

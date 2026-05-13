@@ -1,19 +1,16 @@
-// ── Screen ID ──
-export type ScreenId =
-  | 'dashboard'
-  | 'plan'
-  | 'lessons'
-  | 'lessonDetail'
-  | 'speak'
-  | 'write'
-  | 'stats'
-  | 'review'
-  | 'log'
-  | 'config'
-  | 'terminal'
-
 // ── Focus Scopes ──
-export type FocusScope = 'navigation' | 'list' | 'command' | 'modal' | 'textinput'
+export type BuiltinFocusScope =
+  | 'navigation'
+  | 'list'
+  | 'command'
+  | 'modal'
+  | 'textinput'
+
+/**
+ * Framework consumers can introduce additional scopes by using string literals.
+ * Built-ins are still strongly typed for the default interaction model.
+ */
+export type FocusScope = BuiltinFocusScope | (string & {})
 
 // ── Theme Tokens Interface ──
 export interface ThemeTokens {

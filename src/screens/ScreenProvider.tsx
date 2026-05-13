@@ -70,6 +70,13 @@ export function useScreen(): ScreenContextValue {
 }
 
 export function ScreenRenderer() {
-  const { currentScreen } = useScreen()
-  return <>{currentScreen.component()}</>
+  const { currentScreen, screenParams } = useScreen()
+  return (
+    <>
+      {currentScreen.component({
+        params: screenParams,
+        modalProps: {},
+      })}
+    </>
+  )
 }

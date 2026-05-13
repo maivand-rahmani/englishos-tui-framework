@@ -1,4 +1,4 @@
-import { useEffect, useId, useCallback } from 'react'
+import { useEffect, useId, useCallback, useRef } from 'react'
 import { useFocusScope } from './FocusScope.js'
 
 export interface UseFocusableOptions {
@@ -12,13 +12,12 @@ export interface UseFocusableResult {
   isLast: boolean
 }
 
-let counter = 0
-
 export function useFocusable(
   options: UseFocusableOptions = {},
 ): UseFocusableResult {
   const internalId = useId()
-  const id = options.id ?? `f-${internalId}-${++counter}`
+  const stableIdRef = useRef(options.id ?? `f-${internalId}`)
+  const id = stableIdRef.current
   const { register, focus, focusedId, isFirst, isLast } = useFocusScope()
 
   useEffect(() => {

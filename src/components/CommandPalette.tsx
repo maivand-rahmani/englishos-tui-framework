@@ -42,38 +42,39 @@ export function CommandPalette({ registry, onClose }: CommandPaletteProps) {
 
       if (key.escape) {
         h.onClose()
-        return
+        return true
       }
 
       if (key.return && h.results[h.selectedIndex]) {
         h.results[h.selectedIndex].action.handler()
         h.onClose()
-        return
+        return true
       }
 
       if (key.downArrow) {
         h.setSelectedIndex((prev: number) =>
           Math.min(prev + 1, h.results.length - 1),
         )
-        return
+        return true
       }
 
       if (key.upArrow) {
         h.setSelectedIndex((prev: number) => Math.max(prev - 1, 0))
-        return
+        return true
       }
 
       if (key.backspace) {
         h.setQuery((prev: string) => prev.slice(0, -1))
-        return
+        return true
       }
 
       if (input.length === 1 && input >= ' ' && input <= '~') {
         h.setQuery((prev: string) => prev + input)
+        return true
       }
     },
     'command',
-    [],
+    { priority: 80 },
   )
 
   return (
@@ -91,7 +92,7 @@ export function CommandPalette({ registry, onClose }: CommandPaletteProps) {
         <Text dimColor>|</Text>
       </Box>
       <Box flexDirection="column">
-        {renderResults(results, selectedIndex, colors)}
+        {renderResults(results, selectedIndex, query, colors)}
       </Box>
     </Box>
   )
@@ -100,6 +101,7 @@ export function CommandPalette({ registry, onClose }: CommandPaletteProps) {
 function renderResults(
   results: ActionMatch[],
   selectedIndex: number,
+  query: string,
   colors: ReturnType<typeof useTheme>['colors'],
 ): ReactElement[] {
   const elements: ReactElement[] = []
