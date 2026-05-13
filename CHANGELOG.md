@@ -1,4 +1,4 @@
-# @maivand-rahmani/tui-framework
+# englishos-tui-framework
 
 ## 0.1.0
 

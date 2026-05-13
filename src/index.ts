@@ -1,4 +1,4 @@
-// @maivand-rahmani/tui-framework — stable barrel exports
+// englishos-tui-framework — stable barrel exports
 export type * from './types.js'
 export * from './constants.js'
 export * from './design-system/tokens.js'
