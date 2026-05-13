@@ -1,5 +1,11 @@
 # englishos-tui-framework
 
+## 0.1.2
+
+### Patch Changes
+
+- [#10](https://github.com/maivand-rahmani/englishos-tui-framework/pull/10) [`f5e7693`](https://github.com/maivand-rahmani/englishos-tui-framework/commit/f5e769366d8209438d8eb67c3fcc8f604af27087) Thanks [@maivand-rahmani](https://github.com/maivand-rahmani)! - Publish the framework under the maintainer-owned npm user scope to unblock first-time public release publishing from CI.
+
 ## 0.1.1
 
 ### Patch Changes
