@@ -38,6 +38,7 @@
     "pack:check": "npm run build && npm pack --dry-run",
     "changeset": "changeset",
     "changeset:version": "changeset version",
+    "publish:release": "npm publish --provenance --access public",
     "publish:beta": "npm publish --tag beta --provenance --access public"
   },
   "dependencies": {
