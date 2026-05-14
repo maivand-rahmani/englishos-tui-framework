@@ -5,6 +5,7 @@ export type BuiltinFocusScope =
   | 'command'
   | 'modal'
   | 'textinput'
+  | 'process'
 
 /**
  * Framework consumers can introduce additional scopes by using string literals.

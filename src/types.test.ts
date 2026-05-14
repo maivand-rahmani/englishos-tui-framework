@@ -12,6 +12,7 @@ const _focusScopeValues: FocusScope[] = [
   'command',
   'modal',
   'textinput',
+  'process',
 ]
 
 const _shortcut: KeyboardShortcut = { keys: 'l', description: 'Lessons', scope: 'navigation' }
@@ -38,10 +39,11 @@ describe('LAYOUT', () => {
 
 describe('FOCUS_SCOPE_PRIORITY', () => {
   it('assigns modal the highest priority (0)', () => { expect(FOCUS_SCOPE_PRIORITY.modal).toBe(0) })
-  it('assigns command priority 1', () => { expect(FOCUS_SCOPE_PRIORITY.command).toBe(1) })
-  it('assigns textinput priority 2', () => { expect(FOCUS_SCOPE_PRIORITY.textinput).toBe(2) })
-  it('assigns list priority 3', () => { expect(FOCUS_SCOPE_PRIORITY.list).toBe(3) })
-  it('assigns navigation the lowest priority (4)', () => { expect(FOCUS_SCOPE_PRIORITY.navigation).toBe(4) })
+  it('assigns process priority 1', () => { expect(FOCUS_SCOPE_PRIORITY.process).toBe(1) })
+  it('assigns command priority 2', () => { expect(FOCUS_SCOPE_PRIORITY.command).toBe(2) })
+  it('assigns textinput priority 3', () => { expect(FOCUS_SCOPE_PRIORITY.textinput).toBe(3) })
+  it('assigns list priority 4', () => { expect(FOCUS_SCOPE_PRIORITY.list).toBe(4) })
+  it('assigns navigation the lowest priority (5)', () => { expect(FOCUS_SCOPE_PRIORITY.navigation).toBe(5) })
   it('covers all FocusScope values', () => {
     const scopes = Object.keys(FOCUS_SCOPE_PRIORITY).sort()
     expect(scopes).toEqual(_focusScopeValues.sort())

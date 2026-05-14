@@ -9,10 +9,11 @@ export const LAYOUT = {
 
 export const FOCUS_SCOPE_PRIORITY: Record<BuiltinFocusScope, number> = {
   modal: 0,
-  command: 1,
-  textinput: 2,
-  list: 3,
-  navigation: 4,
+  process: 1,
+  command: 2,
+  textinput: 3,
+  list: 4,
+  navigation: 5,
 } as const
 
 export function getScopePriority(scope: FocusScope): number {
