@@ -78,6 +78,20 @@ export { ActionRegistry } from './commands/ActionRegistry.js'
 export type { Action, ActionMatch } from './commands/ActionRegistry.js'
 export { CommandPalette } from './components/CommandPalette.js'
 export type { CommandPaletteProps } from './components/CommandPalette.js'
+export { NodeProcessRunner } from './commands/ProcessRunner.js'
+export type { ProcessRunner, RunningProcess } from './commands/ProcessRunner.js'
+export { useCommandSession } from './commands/useCommandSession.js'
+export type {
+  CommandSessionMode,
+  SessionStatus,
+  UseCommandSessionOptions,
+  CommandSessionAPI,
+  OutputLine,
+} from './commands/useCommandSession.js'
+export { CommandBar } from './components/CommandBar.js'
+export type { CommandBarProps } from './components/CommandBar.js'
+export { ProcessOutputPanel } from './components/ProcessOutputPanel.js'
+export type { ProcessOutputPanelProps } from './components/ProcessOutputPanel.js'
 export { ModalProvider, useModal } from './components/ModalProvider.js'
 export type { ModalProviderProps } from './components/ModalProvider.js'
 export { ConfirmModal } from './components/ConfirmModal.js'
