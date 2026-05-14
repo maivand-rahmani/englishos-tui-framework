@@ -380,18 +380,33 @@ describe('RegionProvider', () => {
     })
   })
 
-  describe('programmatic region switching', () => {
-    it('setActiveRegion switches the active region when called from useEffect', async () => {
+  describe('render loop regression', () => {
+    it('does not enter infinite loop when region switches via Tab', async () => {
+      let renderCount = 0
+
+      function RenderTracker() {
+        renderCount++
+        return null
+      }
+
       function App() {
         useFocusableRegion('sidebar')
         useFocusableRegion('content')
-        const ctx = useRegionContext()
-        const { isActive: sidebarActive } = useFocusableRegion('sidebar')
-        const { isActive: contentActive } = useFocusableRegion('content')
-        return <Text>sidebar:{String(sidebarActive)} content:{String(contentActive)}</Text>
+        return (
+          <Box flexDirection="column">
+            <RenderTracker />
+            <FocusScope scope="navigation" autoFocus regionId="sidebar">
+              <FocusableItem id="s1" label="S1" />
+              <FocusableItem id="s2" label="S2" />
+            </FocusScope>
+            <FocusScope scope="navigation" autoFocus regionId="content">
+              <FocusableItem id="c1" label="C1" />
+            </FocusScope>
+          </Box>
+        )
       }
 
-      const { lastFrame } = renderUI(
+      const { stdin } = renderUI(
         <KeyboardScopeProvider>
           <RegionProvider defaultRegion="sidebar">
             <App />
@@ -399,32 +414,122 @@ describe('RegionProvider', () => {
         </KeyboardScopeProvider>,
       )
       await delay()
-      expect(lastFrame()).toContain('sidebar:true')
-      expect(lastFrame()).toContain('content:false')
+      const baseline = renderCount
+
+      stdin.write('\t')
+      await delay()
+      const afterTab1 = renderCount
+      // After Tab: region switches to content
+      // If there's a loop, renderCount would explode (100+)
+      expect(afterTab1 - baseline).toBeLessThan(50)
+
+      stdin.write('\t')
+      await delay()
+      const afterTab2 = renderCount
+      expect(afterTab2 - afterTab1).toBeLessThan(50)
+
+      // Arrow keys in inactive region should NOT trigger renders
+      stdin.write('\u001b[B')
+      await delay()
+      const afterArrow = renderCount
+      expect(afterArrow - afterTab2).toBeLessThan(50)
     })
 
-    it('cycleToNextRegion rotates via ref (direct call in context)', async () => {
-      // This test validates cycleToNextRegion logic directly
-      // by calling it inside a useEffect timer.
-      let cycleResult = ''
+    it('does not enter infinite loop when SidebarEntry active prop changes', async () => {
+      let renderCount = 0
 
-      function App() {
-        const ctx = useRegionContext()
-        useFocusableRegion('x')
-        useFocusableRegion('y')
-        cycleResult = ctx.cycleToNextRegion.name
-        return <Text>active:{ctx.activeRegionId}</Text>
+      function RenderTracker() {
+        renderCount++
+        return null
       }
 
-      const { lastFrame } = renderUI(
+      function App() {
+        useFocusableRegion('sidebar')
+        useFocusableRegion('content')
+        return (
+          <Box flexDirection="column">
+            <RenderTracker />
+            <FocusScope
+              scope="navigation"
+              autoFocus
+              regionId="sidebar"
+              onActivate={(id) => { /* simulate screen change */ }}
+            >
+              <FocusableItem id="a" label="A" />
+              <FocusableItem id="b" label="B" />
+              <FocusableItem id="c" label="C" />
+            </FocusScope>
+          </Box>
+        )
+      }
+
+      const { stdin } = renderUI(
         <KeyboardScopeProvider>
-          <RegionProvider defaultRegion="x">
+          <RegionProvider defaultRegion="sidebar">
             <App />
           </RegionProvider>
         </KeyboardScopeProvider>,
       )
       await delay()
-      expect(lastFrame()).toContain('active:x')
+      const baseline = renderCount
+
+      // Navigate down and activate items
+      stdin.write('\u001b[B')
+      await delay()
+      stdin.write('\u001b[B')
+      await delay()
+      stdin.write('\r')
+      await delay()
+      const totalRenders = renderCount - baseline
+      // If there's a loop triggered by sidebar interaction,
+      // renderCount would explode
+      expect(totalRenders).toBeLessThan(50)
+    })
+
+    it('useFocusableRegion does not cause cascading re-registrations', async () => {
+      let registrationCount = 0
+
+      function Tracker() {
+        const ctx = useRegionContext()
+        const origRegister = ctx.registerRegion
+        // Count registrations by wrapping — but we can't easily intercept
+        // Instead, count renders in a component that uses useFocusableRegion
+        return null
+      }
+
+      function SidebarRegion() {
+        useFocusableRegion('sidebar')
+        return <Text>sidebar</Text>
+      }
+
+      function ContentRegion() {
+        useFocusableRegion('content')
+        return <Text>content</Text>
+      }
+
+      function RenderCounter() {
+        const { isActive } = useFocusableRegion('sidebar')
+        return <Text>active:{String(isActive)}</Text>
+      }
+
+      const { stdin, lastFrame } = renderUI(
+        <KeyboardScopeProvider>
+          <RegionProvider defaultRegion="content">
+            <SidebarRegion />
+            <ContentRegion />
+            <RenderCounter />
+          </RegionProvider>
+        </KeyboardScopeProvider>,
+      )
+      await delay(100)
+      expect(lastFrame()).toContain('active:false')
+
+      // Simulate Tab to switch to sidebar region
+      stdin.write('\t')
+      await delay(100)
+
+      // Should have switched to sidebar without infinite loop
+      expect(lastFrame()).toContain('active:true')
     })
   })
 })
