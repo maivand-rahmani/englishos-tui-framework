@@ -1,6 +1,6 @@
 {
-  "name": "@englishos/tui-framework",
-  "version": "0.1.0-beta.0",
+  "name": "@maivandrahmani/englishos-tui-framework",
+  "version": "0.1.2",
   "private": false,
   "type": "module",
   "main": "./dist/index.cjs",
@@ -34,9 +34,11 @@
     "build": "tsup src/index.ts src/experimental/index.ts --format esm,cjs --dts --sourcemap --clean",
     "typecheck": "tsc --noEmit",
     "test": "vitest run src",
-    "pack:check": "npm pack --dry-run",
+    "prepack": "npm run build",
+    "pack:check": "npm run build && npm pack --dry-run",
     "changeset": "changeset",
     "changeset:version": "changeset version",
+    "publish:release": "npm publish --provenance --access public",
     "publish:beta": "npm publish --tag beta --provenance --access public"
   },
   "dependencies": {

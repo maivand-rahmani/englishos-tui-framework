@@ -41,7 +41,10 @@ function createTestRegistry() {
   return r
 }
 
-async function typeChars(stdin: { write: (d: string) => boolean }, text: string) {
+async function typeChars(
+  stdin: { write: (d: string) => unknown },
+  text: string,
+) {
   for (const ch of text) {
     stdin.write(ch)
     await delay(30)
