@@ -5,6 +5,7 @@ import { LAYOUT } from '../constants.js'
 import { useTheme } from '../design-system/ThemeProvider.js'
 import { FocusScope } from '../interaction/FocusScope.js'
 import { useFocusable } from '../interaction/useFocusable.js'
+import { useFocusableRegion } from '../interaction/RegionProvider.js'
 import { useNavigation } from '../navigation/NavigationProvider.js'
 
 export interface SidebarItem {
@@ -31,10 +32,12 @@ function SidebarEntry({
   item,
   active,
   showDescription,
+  regionActive,
 }: {
   item: SidebarItem
   active: boolean
   showDescription: boolean
+  regionActive: boolean
 }) {
   const theme = useTheme()
   const { focused, onActivate } = useFocusable({ id: item.id })
@@ -46,15 +49,19 @@ function SidebarEntry({
   }, [active, onActivate])
 
   const marker = focused ? '›' : active ? '•' : ' '
-  const labelColor = active
-    ? theme.colors.focus.active
-    : focused
-      ? theme.colors.focus.ring
-      : theme.colors.text.primary
+  const labelColor = regionActive
+    ? active
+      ? theme.colors.focus.active
+      : focused
+        ? theme.colors.focus.ring
+        : theme.colors.text.primary
+    : active
+      ? theme.colors.focus.active
+      : theme.colors.text.muted
 
   return (
     <Box flexDirection="column" marginTop={theme.spacing.xs}>
-      <Text color={labelColor} bold={active || focused}>
+      <Text color={labelColor} bold={active || (focused && regionActive)}>
         {marker} {item.label}
       </Text>
       {showDescription && item.description != null && item.description.length > 0 && (
@@ -76,6 +83,7 @@ export function Sidebar({
   const columns = columnsOverride ?? detectedColumns ?? LAYOUT.medium
   const theme = useTheme()
   const { currentScreenId, push } = useNavigation()
+  const { isActive: regionActive } = useFocusableRegion('sidebar')
   const showDescriptions = columns >= LAYOUT.medium
   const hasActiveItem = items.some((item) => item.id === currentScreenId)
   const inputOrder = new Map(items.map((item, index) => [item.id, index]))
@@ -122,12 +130,13 @@ export function Sidebar({
   return (
     <FocusScope
       scope="navigation"
-      autoFocus={!hasActiveItem}
+      autoFocus={regionActive && !hasActiveItem}
       onActivate={(screenId) => {
         if (screenId !== currentScreenId) {
           push(screenId)
         }
       }}
+      regionId="sidebar"
     >
       <Box flexDirection="column">
         {visibleGroups.map(({ category, items: categoryItems }, categoryIndex) => {
@@ -148,6 +157,7 @@ export function Sidebar({
                   item={item}
                   active={item.id === currentScreenId}
                   showDescription={showDescriptions}
+                  regionActive={regionActive}
                 />
               ))}
             </Box>

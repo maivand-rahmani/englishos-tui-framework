@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { ThemeProvider } from './design-system/ThemeProvider.js'
 import { KeyboardScopeProvider } from './interaction/KeyboardScopeProvider.js'
+import { RegionProvider } from './interaction/RegionProvider.js'
 import type { FocusScope } from './types.js'
 import {
   NavigationProvider,
@@ -14,8 +15,10 @@ export interface FrameworkProviderProps
   children: ReactNode
   themeMode?: 'dark' | 'light'
   defaultScope?: FocusScope
+  defaultRegion?: string
   withToastProvider?: boolean
   withModalProvider?: boolean
+  withRegionProvider?: boolean
   onModalClose?: () => void
 }
 
@@ -25,8 +28,10 @@ export function FrameworkProvider({
   defaultScreen,
   themeMode = 'dark',
   defaultScope = 'navigation',
+  defaultRegion = 'content',
   withToastProvider = true,
   withModalProvider = true,
+  withRegionProvider = false,
   onModalClose,
 }: FrameworkProviderProps) {
   let body: ReactNode = children
@@ -42,9 +47,17 @@ export function FrameworkProvider({
   return (
     <ThemeProvider mode={themeMode}>
       <KeyboardScopeProvider defaultScope={defaultScope}>
-        <NavigationProvider registry={registry} defaultScreen={defaultScreen}>
-          {body}
-        </NavigationProvider>
+        {withRegionProvider ? (
+          <RegionProvider defaultRegion={defaultRegion}>
+            <NavigationProvider registry={registry} defaultScreen={defaultScreen}>
+              {body}
+            </NavigationProvider>
+          </RegionProvider>
+        ) : (
+          <NavigationProvider registry={registry} defaultScreen={defaultScreen}>
+            {body}
+          </NavigationProvider>
+        )}
       </KeyboardScopeProvider>
     </ThemeProvider>
   )

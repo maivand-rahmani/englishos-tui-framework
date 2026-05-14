@@ -10,6 +10,7 @@ import {
 import type { FocusScope as FocusScopeType } from '../types.js'
 import { useScopedInputInScope } from './useInputInScope.js'
 import { useKeyboardScope } from './KeyboardScopeProvider.js'
+import { RegionFocusContext } from './RegionProvider.js'
 
 export interface FocusScopeContextValue {
   focusedId: string | null
@@ -27,6 +28,8 @@ export interface FocusScopeProps {
   children: ReactNode
   autoFocus?: boolean
   onActivate?: (id: string) => void
+  /** If set, keyboard handlers only fire when this region is the active focus region. */
+  regionId?: string
 }
 
 export function FocusScope({
@@ -34,8 +37,15 @@ export function FocusScope({
   children,
   autoFocus = false,
   onActivate,
+  regionId,
 }: FocusScopeProps) {
   const { isScopeActive } = useKeyboardScope()
+  const regionCtx = useContext(RegionFocusContext)
+  const isRegionActive = regionId != null && regionCtx != null
+    ? regionCtx.isRegionActive(regionId)
+    : true
+  const isRegionActiveRef = useRef(isRegionActive)
+  isRegionActiveRef.current = isRegionActive
   const [focusedId, setFocusedId] = useState<string | null>(null)
   const [items, setItems] = useState<string[]>([])
   const onActivateRef = useRef(onActivate)
@@ -103,6 +113,7 @@ export function FocusScope({
 
   useScopedInputInScope(
     (event) => {
+      if (!isRegionActiveRef.current) return
       const { key } = event
       if (key.upArrow) {
         focusPrev()
@@ -131,7 +142,7 @@ export function FocusScope({
     focusedId,
     register,
     focus,
-    focused: isScopeActive(scope),
+    focused: isScopeActive(scope) && isRegionActive,
     isFirst,
     isLast,
   }
