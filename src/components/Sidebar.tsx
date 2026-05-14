@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
 import { Box, Text, useWindowSize } from 'ink'
 import { LAYOUT } from '../constants.js'
@@ -41,12 +41,14 @@ function SidebarEntry({
 }) {
   const theme = useTheme()
   const { focused, onActivate } = useFocusable({ id: item.id })
+  const onActivateRef = useRef(onActivate)
+  onActivateRef.current = onActivate
 
   useEffect(() => {
     if (active) {
-      onActivate()
+      onActivateRef.current()
     }
-  }, [active, onActivate])
+  }, [active])
 
   const marker = focused ? '›' : active ? '•' : ' '
   const labelColor = regionActive

@@ -4,6 +4,7 @@ import {
   useState,
   useCallback,
   useRef,
+  useMemo,
   useEffect,
   type ReactNode,
 } from 'react'
@@ -62,15 +63,24 @@ export function useFocusableRegion(
   id: string,
 ): UseFocusableRegionResult {
   const ctx = useContext(RegionFocusContext)
+  const ctxRef = useRef(ctx)
+  ctxRef.current = ctx
 
+  // Intentionally only depends on `id` — ctx is accessed via ref to prevent
+  // the effect from tearing down and re-registering on every context change.
+  // Without this guard, the cleanup function resets activeRegionId to null,
+  // which combined with Set reference changes from re-registration creates
+  // an infinite render loop.
   useEffect(() => {
-    if (ctx == null) return
-    return ctx.registerRegion(id)
-  }, [id, ctx])
+    const currentCtx = ctxRef.current
+    if (currentCtx == null) return
+    return currentCtx.registerRegion(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id])
 
   const activate = useCallback(() => {
-    ctx?.setActiveRegion(id)
-  }, [id, ctx])
+    ctxRef.current?.setActiveRegion(id)
+  }, [id])
 
   return {
     isActive: ctx?.isRegionActive(id) ?? true,
@@ -100,6 +110,7 @@ export function RegionProvider({
 
   const registerRegion = useCallback((id: string) => {
     setRegionSet((prev) => {
+      if (prev.has(id)) return prev
       const next = new Set(prev)
       next.add(id)
       return next
@@ -172,15 +183,26 @@ export function RegionProvider({
     { priority: 100 },
   )
 
-  const value: RegionFocusContextValue = {
-    activeRegionId,
-    regionIds: Array.from(regionSet),
-    registerRegion,
-    setActiveRegion: setActiveRegion,
-    cycleToNextRegion,
-    cycleToPrevRegion,
-    isRegionActive,
-  }
+  const value = useMemo<RegionFocusContextValue>(
+    () => ({
+      activeRegionId,
+      regionIds: Array.from(regionSet),
+      registerRegion,
+      setActiveRegion: setActiveRegion,
+      cycleToNextRegion,
+      cycleToPrevRegion,
+      isRegionActive,
+    }),
+    [
+      activeRegionId,
+      regionSet,
+      registerRegion,
+      setActiveRegion,
+      cycleToNextRegion,
+      cycleToPrevRegion,
+      isRegionActive,
+    ],
+  )
 
   return (
     <RegionFocusContext.Provider value={value}>
