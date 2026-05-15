@@ -10,6 +10,7 @@ import {
 import { useInputInScope, useKeyHandler, useKeyBinding } from './useInputInScope.js'
 import { FocusScope, useFocusScope } from './FocusScope.js'
 import { useFocusable } from './useFocusable.js'
+import { RegionProvider } from './RegionProvider.js'
 import { useFocusZone, useFocusGroup, useFocusableV2, FocusTreeProvider, FocusZoneContext } from './FocusTreeProvider.js'
 import { InputConsumptionResult } from '../types.js'
 import type { NormalizedKeyEvent } from '../types.js'
@@ -1097,5 +1098,338 @@ describe('FocusTreeProvider & Focus Hierarchy', () => {
       </KeyboardScopeProvider>,
     )
     expect(lastFrame()).toContain('inside tree')
+  })
+})
+
+// ── Guardrail: Provider Composition ────────────────────────────────
+
+describe('Provider Composition', () => {
+  it('composes all three providers without error', async () => {
+    const { lastFrame } = renderUI(
+      <KeyboardScopeProvider>
+        <FocusTreeProvider>
+          <RegionProvider defaultRegion="content">
+            <Text>composed providers</Text>
+          </RegionProvider>
+        </FocusTreeProvider>
+      </KeyboardScopeProvider>,
+    )
+    await delay()
+    expect(lastFrame()).toContain('composed providers')
+  })
+})
+
+// ── Guardrail: Scope Ownership ─────────────────────────────────────
+
+describe('Scope Ownership', () => {
+  it('pushScope/popScope follows LIFO order', async () => {
+    let ctx: ReturnType<typeof useKeyboardScope> | null = null
+    function Harness() {
+      ctx = useKeyboardScope()
+      return <Text>Scopes: {ctx.activeScopes.join(',')}</Text>
+    }
+    const { lastFrame } = renderUI(
+      <KeyboardScopeProvider>
+        <Harness />
+      </KeyboardScopeProvider>,
+    )
+    await delay()
+    // Default: ['navigation']
+    expect(lastFrame()).toContain('Scopes: navigation')
+
+    ctx!.pushScope('modal')
+    await delay()
+    expect(lastFrame()).toContain('Scopes: navigation,modal')
+
+    ctx!.pushScope('command')
+    await delay()
+    expect(lastFrame()).toContain('Scopes: navigation,modal,command')
+
+    // popScope() removes the LAST pushed scope
+    ctx!.popScope()
+    await delay()
+    expect(lastFrame()).toContain('Scopes: navigation,modal')
+
+    // pushScope is idempotent when scope already exists
+    ctx!.pushScope('modal')
+    await delay()
+    expect(lastFrame()).toContain('Scopes: navigation,modal')
+  })
+
+  it('popScope with explicit scope removes only that scope', async () => {
+    let ctx: ReturnType<typeof useKeyboardScope> | null = null
+    function Harness() {
+      ctx = useKeyboardScope()
+      return <Text>Scopes: {ctx.activeScopes.join(',')}</Text>
+    }
+    const { lastFrame } = renderUI(
+      <KeyboardScopeProvider>
+        <Harness />
+      </KeyboardScopeProvider>,
+    )
+    await delay()
+
+    ctx!.pushScope('modal')
+    ctx!.pushScope('command')
+    await delay()
+    expect(lastFrame()).toContain('Scopes: navigation,modal,command')
+
+    // popScope('modal') removes only 'modal', leaving others in place
+    ctx!.popScope('modal')
+    await delay()
+    expect(lastFrame()).toContain('Scopes: navigation,command')
+  })
+})
+
+// ── Guardrail: Legacy API Compat ───────────────────────────────────
+
+describe('Legacy API Compatibility', () => {
+  it('legacy useInputInScope still fires with new scope stack', async () => {
+    const calls: string[] = []
+    function LegacyHandler() {
+      useInputInScope((input) => {
+        calls.push(input)
+      }, 'navigation')
+      return null
+    }
+    const { stdin } = renderUI(
+      <KeyboardScopeProvider>
+        <LegacyHandler />
+      </KeyboardScopeProvider>,
+    )
+    await delay()
+    stdin.write('x')
+    await delay()
+    expect(calls).toContain('x')
+  })
+
+  it('legacy useInputInScope receives (input, key) tuple', async () => {
+    const received: Array<{ input: string; key: unknown }> = []
+    function LegacyHandler() {
+      useInputInScope((input, key) => {
+        received.push({ input, key })
+      }, 'navigation')
+      return null
+    }
+    const { stdin } = renderUI(
+      <KeyboardScopeProvider>
+        <LegacyHandler />
+      </KeyboardScopeProvider>,
+    )
+    await delay()
+    stdin.write('z')
+    await delay()
+    expect(received).toHaveLength(1)
+    expect(received[0].input).toBe('z')
+    expect(received[0].key).toBeDefined()
+  })
+})
+
+// ── Guardrail: FocusScope Compat with useFocusZone ─────────────────
+
+describe('FocusScope + useFocusZone Coexistence', () => {
+  it('FocusScope works alongside useFocusZone', async () => {
+    function OldItem({ id }: { id: string }) {
+      const { focused } = useFocusable({ id })
+      return <Text>old-{id}{focused ? '*' : ''}</Text>
+    }
+
+    function NewItem({ id, label }: { id: string; label: string }) {
+      const { focused } = useFocusableV2({ id })
+      return <Text>new-{label}{focused ? '*' : ''}</Text>
+    }
+
+    function NewGroup() {
+      const { GroupProvider } = useFocusGroup('coexist', { scope: 'navigation' })
+      return (
+        <GroupProvider>
+          <NewItem id="n1" label="A" />
+          <NewItem id="n2" label="B" />
+        </GroupProvider>
+      )
+    }
+
+    const { lastFrame } = renderUI(
+      <KeyboardScopeProvider>
+        <FocusScope scope="navigation" autoFocus>
+          <OldItem id="o1" />
+          <OldItem id="o2" />
+        </FocusScope>
+        <NewGroup />
+      </KeyboardScopeProvider>,
+    )
+    await delay()
+
+    // Both old and new items render without error
+    expect(lastFrame()).toContain('old-o1')
+    expect(lastFrame()).toContain('old-o2')
+    expect(lastFrame()).toContain('new-A')
+    expect(lastFrame()).toContain('new-B')
+
+    // At least one focus system is active (autoFocus triggers a highlight)
+    const frame = lastFrame() ?? ''
+    const hasFocus = frame.includes('*')
+    expect(hasFocus).toBe(true)
+  })
+
+  it('FocusScope onActivate fires with Enter on focused item', async () => {
+    const activated: string[] = []
+
+    function OldItem({ id }: { id: string }) {
+      const { focused } = useFocusable({ id })
+      return <Text>old-{id}{focused ? '*' : ''}</Text>
+    }
+
+    function NewItem({ id, label }: { id: string; label: string }) {
+      const { focused } = useFocusableV2({ id })
+      return <Text>new-{label}{focused ? '*' : ''}</Text>
+    }
+
+    function NewGroup() {
+      const { GroupProvider } = useFocusGroup('act', { scope: 'navigation' })
+      return (
+        <GroupProvider>
+          <NewItem id="nx1" label="X" />
+        </GroupProvider>
+      )
+    }
+
+    const { stdin } = renderUI(
+      <KeyboardScopeProvider>
+        <FocusScope
+          scope="navigation"
+          autoFocus
+          onActivate={(id) => activated.push(id)}
+        >
+          <OldItem id="oa" />
+          <OldItem id="ob" />
+        </FocusScope>
+        <NewGroup />
+      </KeyboardScopeProvider>,
+    )
+    await delay()
+
+    stdin.write('\r')
+    await delay()
+    expect(activated).toContain('oa')
+  })
+})
+
+// ── Guardrail: Shell Suspension ────────────────────────────────────
+
+describe('Shell Suspension', () => {
+  it('suspendShell blocks navigation handlers', async () => {
+    const navCalls: string[] = []
+    const otherCalls: string[] = []
+    let nav: ReturnType<typeof useKeyboardScope>
+
+    function Harness() {
+      const ctx = useKeyboardScope()
+      nav = ctx
+      return <Text>active</Text>
+    }
+
+    function NavHandler() {
+      useInputInScope((input) => {
+        navCalls.push(input)
+      }, 'navigation')
+      return null
+    }
+
+    function OtherHandler() {
+      useInputInScope((input) => {
+        otherCalls.push(input)
+      }, 'command')
+      return null
+    }
+
+    const { stdin } = renderUI(
+      <KeyboardScopeProvider>
+        <Harness />
+        <NavHandler />
+        <OtherHandler />
+      </KeyboardScopeProvider>,
+    )
+    await delay()
+
+    // Push command scope so it is active alongside navigation
+    nav!.pushScope('command')
+    await delay()
+
+    // Before suspension: both fire
+    stdin.write('a')
+    await delay()
+    expect(navCalls).toContain('a')
+    expect(otherCalls).toContain('a')
+
+    // Suspend shell
+    nav!.suspendShell()
+    await delay()
+
+    // Clear arrays
+    navCalls.length = 0
+    otherCalls.length = 0
+
+    // After suspension: navigation blocked, command still fires
+    stdin.write('b')
+    await delay()
+    expect(navCalls).not.toContain('b')
+    expect(otherCalls).toContain('b')
+  })
+
+  it('suspendShell sets shellSuspended to true', async () => {
+    let ctx: ReturnType<typeof useKeyboardScope> | null = null
+    function Harness() {
+      ctx = useKeyboardScope()
+      return <Text>suspended: {String(ctx.shellSuspended)}</Text>
+    }
+    const { lastFrame } = renderUI(
+      <KeyboardScopeProvider>
+        <Harness />
+      </KeyboardScopeProvider>,
+    )
+    await delay()
+    expect(lastFrame()).toContain('suspended: false')
+
+    ctx!.suspendShell()
+    await delay()
+    expect(lastFrame()).toContain('suspended: true')
+  })
+
+  it('restoreShell re-enables navigation handlers', async () => {
+    const navCalls: string[] = []
+    let nav: ReturnType<typeof useKeyboardScope>
+
+    function Harness() {
+      const ctx = useKeyboardScope()
+      nav = ctx
+      return <Text>active</Text>
+    }
+
+    function NavHandler() {
+      useInputInScope((input) => {
+        navCalls.push(input)
+      }, 'navigation')
+      return null
+    }
+
+    const { stdin } = renderUI(
+      <KeyboardScopeProvider>
+        <Harness />
+        <NavHandler />
+      </KeyboardScopeProvider>,
+    )
+    await delay()
+
+    // Suspend then restore
+    nav!.suspendShell()
+    await delay()
+    nav!.restoreShell()
+    await delay()
+
+    // After restore: navigation fires again
+    stdin.write('r')
+    await delay()
+    expect(navCalls).toContain('r')
   })
 })
