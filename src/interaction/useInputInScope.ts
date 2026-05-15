@@ -46,19 +46,23 @@ function useInputRegistration(
   handler: InputHandler,
   optionsOrDeps: UseInputInScopeOptions | unknown[],
 ) {
-  const { registerHandler } = useKeyboardScope()
+  const { registerHandler, pushScope, popScope } = useKeyboardScope()
   const options = normalizeOptions(optionsOrDeps)
   const deps = options.deps ?? []
   const enabled = options.enabled ?? true
 
   useEffect(() => {
     if (!enabled) return
+    pushScope(scope)
     const unregister = registerHandler(scope, handler, {
       priority: options.priority,
     })
-    return unregister
+    return () => {
+      unregister()
+      popScope(scope)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scope, registerHandler, enabled, options.priority, ...deps])
+  }, [scope, registerHandler, pushScope, popScope, enabled, options.priority, ...deps])
 }
 
 export function useInputInScope(

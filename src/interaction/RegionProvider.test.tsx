@@ -269,10 +269,14 @@ describe('RegionProvider', () => {
       )
       await delay()
 
+      // ModalHandler auto-pushes 'modal' when mounted, so it intercepts
+      // keys before 'navigation' (modal is deeper in the scope stack).
       stdin.write('a')
       await delay()
-      expect(navCalls).toContain('a')
+      expect(modalCalls).toContain('a')
+      expect(navCalls).not.toContain('a')
 
+      // activateScope replaces the stack with just ['modal']
       ctx!.activateScope('modal')
       await delay()
 
