@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import type { Key } from 'ink'
-import type { FocusScope } from '../types.js'
+import { InputConsumptionResult, type FocusScope, type NormalizedKeyEvent } from '../types.js'
+import { normalizeKey } from './KeyEventNormalizer.js'
 import {
   useKeyboardScope,
   type RegisterHandlerOptions,
@@ -18,6 +19,17 @@ export type ScopedInputHandler = (event: ScopedInputEvent) => void | boolean
 export interface UseInputInScopeOptions extends RegisterHandlerOptions {
   deps?: unknown[]
   enabled?: boolean
+}
+
+export type KeyHandler = (event: NormalizedKeyEvent) => InputConsumptionResult | boolean | void
+
+export interface KeyBindingOptions extends UseInputInScopeOptions {
+  modifiers?: {
+    ctrl?: boolean
+    alt?: boolean
+    shift?: boolean
+    meta?: boolean
+  }
 }
 
 function normalizeOptions(
@@ -96,5 +108,63 @@ export function useScopedInputInScope(
     scope,
     (event) => handlerRef.current(event),
     optionsOrDeps,
+  )
+}
+
+export function useKeyHandler(
+  handler: KeyHandler,
+  scope: FocusScope,
+  options?: UseInputInScopeOptions,
+): void {
+  const handlerRef = useRef(handler)
+  handlerRef.current = handler
+
+  useInputRegistration(
+    scope,
+    (event) => {
+      const normalized = normalizeKey(event.input, event.key)
+      const result = handlerRef.current(normalized)
+      if (
+        result === true ||
+        result === InputConsumptionResult.Consumed ||
+        result === InputConsumptionResult.ConsumedAndTrapped
+      ) {
+        return true
+      }
+    },
+    options ?? {},
+  )
+}
+
+export function useKeyBinding(
+  key: string,
+  handler: () => void,
+  scope: FocusScope,
+  options?: KeyBindingOptions,
+): void {
+  const handlerRef = useRef(handler)
+  handlerRef.current = handler
+
+  useInputRegistration(
+    scope,
+    (event) => {
+      const normalized = normalizeKey(event.input, event.key)
+
+      if (normalized.key !== key) return
+
+      const mods = options?.modifiers
+      if (mods) {
+        if (mods.ctrl !== undefined && normalized.ctrl !== mods.ctrl) return
+        if (mods.alt !== undefined && normalized.alt !== mods.alt) return
+        if (mods.shift !== undefined && normalized.shift !== mods.shift) return
+        if (mods.meta !== undefined && normalized.meta !== mods.meta) return
+      } else if (normalized.ctrl || normalized.alt || normalized.meta) {
+        return
+      }
+
+      handlerRef.current()
+      return true
+    },
+    options ?? {},
   )
 }

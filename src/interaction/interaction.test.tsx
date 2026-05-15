@@ -6,9 +6,11 @@ import {
   KeyboardScopeProvider,
   useKeyboardScope,
 } from './KeyboardScopeProvider.js'
-import { useInputInScope } from './useInputInScope.js'
+import { useInputInScope, useKeyHandler, useKeyBinding } from './useInputInScope.js'
 import { FocusScope, useFocusScope } from './FocusScope.js'
 import { useFocusable } from './useFocusable.js'
+import { InputConsumptionResult } from '../types.js'
+import type { NormalizedKeyEvent } from '../types.js'
 import type { ReactElement } from 'react'
 
 function renderUI(ui: ReactElement) {
@@ -385,5 +387,298 @@ describe('useFocusScope()', () => {
         </KeyboardScopeProvider>,
       ),
     ).not.toThrow()
+  })
+})
+
+describe('useKeyHandler', () => {
+  it('receives a NormalizedKeyEvent with correct properties', async () => {
+    const received: NormalizedKeyEvent[] = []
+
+    function TestHandler() {
+      useKeyHandler((event) => {
+        received.push(event)
+      }, 'navigation')
+      return <Text>test</Text>
+    }
+
+    const { stdin } = renderUI(
+      <KeyboardScopeProvider>
+        <TestHandler />
+      </KeyboardScopeProvider>,
+    )
+
+    stdin.write('a')
+    await delay()
+    expect(received).toHaveLength(1)
+    expect(received[0].key).toBe('a')
+    expect(received[0].text).toBe('a')
+    expect(received[0].isPrintable).toBe(true)
+    expect(received[0].rawInput).toBe('a')
+    expect(received[0].ctrl).toBe(false)
+    expect(received[0].shift).toBe(false)
+    expect(received[0].meta).toBe(false)
+    expect(received[0].alt).toBe(false)
+  })
+
+  it('returning Consumed blocks lower-priority handlers', async () => {
+    const highCalls: string[] = []
+    const lowCalls: string[] = []
+
+    function HighPriority() {
+      useKeyHandler(() => {
+        highCalls.push('high')
+        return InputConsumptionResult.Consumed
+      }, 'navigation', { priority: 10 })
+      return null
+    }
+    function LowPriority() {
+      useKeyHandler(() => {
+        lowCalls.push('low')
+      }, 'navigation', { priority: 0 })
+      return null
+    }
+
+    const { stdin } = renderUI(
+      <KeyboardScopeProvider>
+        <HighPriority />
+        <LowPriority />
+      </KeyboardScopeProvider>,
+    )
+
+    stdin.write('x')
+    await delay()
+    expect(highCalls).toContain('high')
+    expect(lowCalls).not.toContain('low')
+  })
+
+  it('returning NotConsumed passes through to next handler', async () => {
+    const firstCalls: string[] = []
+    const secondCalls: string[] = []
+
+    function First() {
+      useKeyHandler(() => {
+        firstCalls.push('first')
+        return InputConsumptionResult.NotConsumed
+      }, 'navigation', { priority: 10 })
+      return null
+    }
+    function Second() {
+      useKeyHandler(() => {
+        secondCalls.push('second')
+      }, 'navigation', { priority: 0 })
+      return null
+    }
+
+    const { stdin } = renderUI(
+      <KeyboardScopeProvider>
+        <First />
+        <Second />
+      </KeyboardScopeProvider>,
+    )
+
+    stdin.write('y')
+    await delay()
+    expect(firstCalls).toContain('first')
+    expect(secondCalls).toContain('second')
+  })
+
+  it('returning true as boolean is treated as Consumed', async () => {
+    const highCalls: string[] = []
+    const lowCalls: string[] = []
+
+    function HighPriority() {
+      useKeyHandler(() => {
+        highCalls.push('high')
+        return true
+      }, 'navigation', { priority: 10 })
+      return null
+    }
+    function LowPriority() {
+      useKeyHandler(() => {
+        lowCalls.push('low')
+      }, 'navigation', { priority: 0 })
+      return null
+    }
+
+    const { stdin } = renderUI(
+      <KeyboardScopeProvider>
+        <HighPriority />
+        <LowPriority />
+      </KeyboardScopeProvider>,
+    )
+
+    stdin.write('z')
+    await delay()
+    expect(highCalls).toContain('high')
+    expect(lowCalls).not.toContain('low')
+  })
+
+  it('returning ConsumedAndTrapped blocks propagation', async () => {
+    const trappedCalls: string[] = []
+    const otherCalls: string[] = []
+
+    function Trapping() {
+      useKeyHandler(() => {
+        trappedCalls.push('trapped')
+        return InputConsumptionResult.ConsumedAndTrapped
+      }, 'navigation', { priority: 10 })
+      return null
+    }
+    function Other() {
+      useKeyHandler(() => {
+        otherCalls.push('other')
+      }, 'navigation', { priority: 0 })
+      return null
+    }
+
+    const { stdin } = renderUI(
+      <KeyboardScopeProvider>
+        <Trapping />
+        <Other />
+      </KeyboardScopeProvider>,
+    )
+
+    stdin.write('t')
+    await delay()
+    expect(trappedCalls).toContain('trapped')
+    expect(otherCalls).not.toContain('other')
+  })
+
+  it('does not fire when scope is not active', async () => {
+    const calls: string[] = []
+
+    function TestHandler() {
+      useKeyHandler(() => {
+        calls.push('fired')
+      }, 'list')
+      return null
+    }
+
+    const { stdin } = renderUI(
+      <KeyboardScopeProvider>
+        <TestHandler />
+      </KeyboardScopeProvider>,
+    )
+
+    stdin.write('q')
+    await delay()
+    expect(calls).not.toContain('fired')
+  })
+})
+
+describe('useKeyBinding', () => {
+  it('fires when bound key matches', async () => {
+    const bCalls: string[] = []
+
+    function TestHandler() {
+      useKeyBinding('b', () => {
+        bCalls.push('b')
+      }, 'navigation')
+      return null
+    }
+
+    const { stdin } = renderUI(
+      <KeyboardScopeProvider>
+        <TestHandler />
+      </KeyboardScopeProvider>,
+    )
+
+    stdin.write('b')
+    await delay()
+    expect(bCalls).toContain('b')
+  })
+
+  it('does not fire when bound key does not match', async () => {
+    const bCalls: string[] = []
+
+    function TestHandler() {
+      useKeyBinding('b', () => {
+        bCalls.push('b')
+      }, 'navigation')
+      return null
+    }
+
+    const { stdin } = renderUI(
+      <KeyboardScopeProvider>
+        <TestHandler />
+      </KeyboardScopeProvider>,
+    )
+
+    stdin.write('c')
+    await delay()
+    expect(bCalls).not.toContain('b')
+  })
+
+  it('requires modifier match when modifiers are specified', async () => {
+    const ctrlBCalls: string[] = []
+
+    function TestHandler() {
+      useKeyBinding('b', () => {
+        ctrlBCalls.push('ctrl+b')
+      }, 'navigation', { modifiers: { ctrl: true } })
+      return null
+    }
+
+    const { stdin } = renderUI(
+      <KeyboardScopeProvider>
+        <TestHandler />
+      </KeyboardScopeProvider>,
+    )
+
+    // bare 'b' (no ctrl) should NOT fire
+    stdin.write('b')
+    await delay()
+    expect(ctrlBCalls).not.toContain('ctrl+b')
+  })
+
+  it('fires on plain key without modifiers by default', async () => {
+    const calls: string[] = []
+
+    function TestHandler() {
+      useKeyBinding('b', () => {
+        calls.push('b')
+      }, 'navigation')
+      return null
+    }
+
+    const { stdin } = renderUI(
+      <KeyboardScopeProvider>
+        <TestHandler />
+      </KeyboardScopeProvider>,
+    )
+
+    stdin.write('b')
+    await delay()
+    expect(calls).toContain('b')
+  })
+
+  it('useKeyBinding consumes the event by returning true', async () => {
+    const boundCalls: string[] = []
+    const fallbackCalls: string[] = []
+
+    function Bound() {
+      useKeyBinding('x', () => {
+        boundCalls.push('bound')
+      }, 'navigation', { priority: 10 })
+      return null
+    }
+    function Fallback() {
+      useKeyHandler(() => {
+        fallbackCalls.push('fallback')
+      }, 'navigation', { priority: 0 })
+      return null
+    }
+
+    const { stdin } = renderUI(
+      <KeyboardScopeProvider>
+        <Bound />
+        <Fallback />
+      </KeyboardScopeProvider>,
+    )
+
+    stdin.write('x')
+    await delay()
+    expect(boundCalls).toContain('bound')
+    expect(fallbackCalls).not.toContain('fallback')
   })
 })
