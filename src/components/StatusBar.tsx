@@ -1,22 +1,32 @@
 import { Box, Text } from 'ink'
 import { useTheme } from '../design-system/ThemeProvider.js'
 import { LAYOUT } from '../constants.js'
+import { ScopedActionRegistryProvider } from '../commands/ScopedActionRegistryProvider.js'
+import { ActionRegistry } from '../commands/ActionRegistry.js'
+import { HotkeyHintBar } from './HotkeyHintBar.js'
 
 export interface StatusBarProps {
   mode?: string
   shortcuts?: { key?: string; keys?: string; description: string; scope?: string }[]
   columns?: number
+  /** Optional — when provided, auto-generates footer hints from the action registry. */
+  registry?: ActionRegistry
 }
 
 export function StatusBar({
   mode,
   shortcuts,
   columns = LAYOUT.narrow + 1,
+  registry,
 }: StatusBarProps) {
   const theme = useTheme()
   const isCompact = columns < LAYOUT.narrow
 
-  if (mode == null && (shortcuts == null || shortcuts.length === 0)) {
+  const hasMode = mode != null
+  const hasShortcuts = shortcuts != null && shortcuts.length > 0
+  const hasRegistry = registry != null
+
+  if (!hasMode && !hasShortcuts && !hasRegistry) {
     return null
   }
 
@@ -24,10 +34,16 @@ export function StatusBar({
     ? (shortcuts ?? []).slice(0, 2)
     : (shortcuts ?? [])
 
+  const registryHints = hasRegistry ? (
+    <ScopedActionRegistryProvider registry={registry}>
+      <HotkeyHintBar />
+    </ScopedActionRegistryProvider>
+  ) : null
+
   return (
     <Box flexDirection="row" justifyContent="space-between">
       <Box>
-        {mode != null && (
+        {hasMode && (
           <Text color={theme.colors.text.muted}>Mode: {mode}</Text>
         )}
       </Box>
@@ -41,6 +57,7 @@ export function StatusBar({
             </Text>
           )
         })}
+        {registryHints}
       </Box>
     </Box>
   )

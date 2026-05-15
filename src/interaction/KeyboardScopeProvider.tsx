@@ -7,7 +7,7 @@ import {
   type ReactNode,
 } from 'react'
 import { useInput, type Key } from 'ink'
-import type { FocusScope } from '../types.js'
+import type { FocusScope, ScopeEntry } from '../types.js'
 import { getScopePriority } from '../constants.js'
 
 export interface ScopedInputEvent {
@@ -42,6 +42,12 @@ export interface KeyboardScopeContextValue {
     handler: InputHandler,
     options?: RegisterHandlerOptions,
   ) => () => void
+  /** Suspend shell-level (navigation) keyboard shortcuts. */
+  suspendShell: () => void
+  /** Restore shell-level keyboard shortcuts. */
+  restoreShell: () => void
+  /** Whether shell shortcuts are currently suspended. */
+  shellSuspended: boolean
 }
 
 const KeyboardScopeContext =
@@ -52,36 +58,61 @@ export interface KeyboardScopeProviderProps {
   defaultScope?: FocusScope
 }
 
-function sortActiveScopes(scopes: FocusScope[]): FocusScope[] {
-  return [...scopes].sort((left, right) => {
-    const priorityDiff = getScopePriority(left) - getScopePriority(right)
-    if (priorityDiff !== 0) return priorityDiff
-    return left.localeCompare(right)
-  })
+function defaultScopeEntry(scope: FocusScope): ScopeEntry {
+  return {
+    id: scope,
+    priority: getScopePriority(scope),
+    trapsInput: false,
+    allowsBubbling: true,
+    globalShortcutsEnabled: true,
+  }
 }
 
 export function KeyboardScopeProvider({
   children,
   defaultScope = 'navigation',
 }: KeyboardScopeProviderProps) {
-  const [activeScopes, setActiveScopes] = useState<FocusScope[]>([defaultScope])
+  const [scopeEntries, setScopeEntries] = useState<ScopeEntry[]>([
+    defaultScopeEntry(defaultScope),
+  ])
   const handlersRef =
     useRef<Map<FocusScope, RegisteredHandler[]>>(new Map())
-  const activeScopesRef = useRef<FocusScope[]>(activeScopes)
-  activeScopesRef.current = activeScopes
+  const scopeEntriesRef = useRef<ScopeEntry[]>(scopeEntries)
+  scopeEntriesRef.current = scopeEntries
   const registrationCounterRef = useRef(0)
 
-  useInput((input, key) => {
-    const scopes = sortActiveScopes(activeScopesRef.current)
+  const [shellSuspended, setShellSuspended] = useState(false)
+  const shellSuspendedRef = useRef(false)
 
-    for (const scope of scopes) {
-      const handlers = handlersRef.current.get(scope)
+  const suspendShell = useCallback(() => {
+    shellSuspendedRef.current = true
+    setShellSuspended(true)
+  }, [])
+
+  const restoreShell = useCallback(() => {
+    shellSuspendedRef.current = false
+    setShellSuspended(false)
+  }, [])
+
+  // ── Input Dispatch ────────────────────────────────────────────────
+
+  useInput((input, key) => {
+    const entries = scopeEntriesRef.current
+
+    // Iterate from deepest (last) to shallowest (first)
+    for (let i = entries.length - 1; i >= 0; i--) {
+      const entry = entries[i]
+
+      // Skip navigation scope when shell is suspended
+      if (shellSuspendedRef.current && entry.id === 'navigation') continue
+
+      const handlers = handlersRef.current.get(entry.id)
       if (!handlers || handlers.length === 0) continue
 
-      const orderedHandlers = [...handlers].sort((left, right) => {
-        const priorityDiff = right.priority - left.priority
+      const orderedHandlers = [...handlers].sort((a, b) => {
+        const priorityDiff = b.priority - a.priority
         if (priorityDiff !== 0) return priorityDiff
-        return left.id - right.id
+        return a.id - b.id
       })
 
       for (const registered of orderedHandlers) {
@@ -89,7 +120,7 @@ export function KeyboardScopeProvider({
         const event: ScopedInputEvent = {
           input,
           key,
-          scope,
+          scope: entry.id,
           stopPropagation: () => {
             stopped = true
           },
@@ -103,8 +134,13 @@ export function KeyboardScopeProvider({
           return
         }
       }
+
+      // Trap: don't bubble past this scope
+      if (entry.trapsInput) return
     }
   })
+
+  // ── Handler Registration ──────────────────────────────────────────
 
   const registerHandler = useCallback(
     (
@@ -135,32 +171,48 @@ export function KeyboardScopeProvider({
     [],
   )
 
+  // ── Scope Stack API ───────────────────────────────────────────────
+
   const activateScope = useCallback((scope: FocusScope) => {
-    setActiveScopes([scope])
+    setScopeEntries([defaultScopeEntry(scope)])
   }, [])
 
   const pushScope = useCallback((scope: FocusScope) => {
-    setActiveScopes((prev) => {
-      if (prev.includes(scope)) return prev
-      return [scope, ...prev]
+    setScopeEntries((prev) => {
+      if (prev.some((e) => e.id === scope)) return prev
+      return [...prev, defaultScopeEntry(scope)]
     })
   }, [])
 
   const popScope = useCallback((scope?: FocusScope) => {
-    setActiveScopes((prev) => {
+    setScopeEntries((prev) => {
       if (prev.length <= 1) return prev
-      if (scope == null) return prev.slice(1)
-      const next = prev.filter((candidate) => candidate !== scope)
+      if (scope == null) return prev.slice(0, -1)
+      const next = prev.filter((candidate) => candidate.id !== scope)
       return next.length === 0 ? prev : next
     })
   }, [])
 
   const isScopeActive = useCallback(
-    (scope: FocusScope) => activeScopesRef.current.includes(scope),
+    (scope: FocusScope) =>
+      scopeEntriesRef.current.some((e) => e.id === scope),
     [],
   )
 
-  const activeScope = sortActiveScopes(activeScopes)[0] ?? defaultScope
+  // ── Derived Values ────────────────────────────────────────────────
+
+  // Highest-priority scope (for backward-compat activeScope)
+  const activeScope: FocusScope = (() => {
+    const sorted = [...scopeEntries].sort((a, b) => {
+      const diff = a.priority - b.priority
+      if (diff !== 0) return diff
+      return a.id.localeCompare(b.id)
+    })
+    return sorted[0]?.id ?? defaultScope
+  })()
+
+  // All scope IDs in stack order (shallowest → deepest)
+  const activeScopes: FocusScope[] = scopeEntries.map((e) => e.id)
 
   return (
     <KeyboardScopeContext.Provider
@@ -172,6 +224,9 @@ export function KeyboardScopeProvider({
         popScope,
         isScopeActive,
         registerHandler,
+        suspendShell,
+        restoreShell,
+        shellSuspended,
       }}
     >
       {children}
@@ -188,3 +243,23 @@ export function useKeyboardScope(): KeyboardScopeContextValue {
   }
   return ctx
 }
+
+/**
+ * Convenience hook for suspending and restoring shell-level (navigation)
+ * keyboard shortcuts without requiring direct access to the full context.
+ */
+export function useShellSuspension(): {
+  suspend: () => void
+  restore: () => void
+  isSuspended: boolean
+} {
+  const { suspendShell, restoreShell, shellSuspended } = useKeyboardScope()
+  return {
+    suspend: suspendShell,
+    restore: restoreShell,
+    isSuspended: shellSuspended,
+  }
+}
+
+/** Alias for {@link ScopeEntry} — describes one level in the scope stack. */
+export type ScopeStackEntry = ScopeEntry

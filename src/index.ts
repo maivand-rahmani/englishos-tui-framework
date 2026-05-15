@@ -50,6 +50,8 @@ export { ScreenRegistry } from './screens/registry.js'
 export { ScreenProvider, useScreen, ScreenRenderer } from './screens/ScreenProvider.js'
 export { StatusBar } from './components/StatusBar.js'
 export type { StatusBarProps } from './components/StatusBar.js'
+export { HotkeyHintBar } from './components/HotkeyHintBar.js'
+export type { HotkeyHintBarProps } from './components/HotkeyHintBar.js'
 export { TopBar } from './components/TopBar.js'
 export type { TopBarProps } from './components/TopBar.js'
 export { Breadcrumbs } from './components/Breadcrumbs.js'
@@ -62,7 +64,8 @@ export type {
   SidebarItem,
   SidebarSectionTitles,
 } from './components/Sidebar.js'
-export { KeyboardScopeProvider, useKeyboardScope } from './interaction/KeyboardScopeProvider.js'
+export { KeyboardScopeProvider, useKeyboardScope, useShellSuspension } from './interaction/KeyboardScopeProvider.js'
+export type { ScopeStackEntry } from './interaction/KeyboardScopeProvider.js'
 export { useInputInScope } from './interaction/useInputInScope.js'
 export { useScopedInputInScope } from './interaction/useInputInScope.js'
 export type {
@@ -74,12 +77,40 @@ export { FocusScope, useFocusScope } from './interaction/FocusScope.js'
 export type { FocusScopeProps, FocusScopeContextValue } from './interaction/FocusScope.js'
 export { useFocusable } from './interaction/useFocusable.js'
 export type { UseFocusableOptions, UseFocusableResult } from './interaction/useFocusable.js'
+export {
+  FocusTreeProvider,
+  FocusZoneContext,
+  useFocusZone,
+  useFocusGroup,
+  useFocusableV2,
+} from './interaction/FocusTreeProvider.js'
+export type {
+  FocusZoneContextValue,
+  FocusGroupContextValue,
+  UseFocusZoneOptions,
+  UseFocusZoneResult,
+  UseFocusGroupOptions,
+  UseFocusGroupResult,
+  UseFocusableV2Options,
+  UseFocusableV2Result,
+  FocusTreeProviderProps,
+} from './interaction/FocusTreeProvider.js'
 export { RegionProvider, useRegionContext, useFocusableRegion } from './interaction/RegionProvider.js'
 export type { RegionFocusContextValue, UseFocusableRegionResult, RegionProviderProps } from './interaction/RegionProvider.js'
 export { useInputInRegion, useScopedInputInRegion } from './interaction/useInputInRegion.js'
 export type { LegacyInputHandler as LegacyRegionInputHandler, ScopedInputHandler as ScopedRegionInputHandler } from './interaction/useInputInRegion.js'
 export { ActionRegistry } from './commands/ActionRegistry.js'
 export type { Action, ActionMatch } from './commands/ActionRegistry.js'
+export {
+  ScopedActionRegistryProvider,
+  useScopedActionRegistry,
+  useRegisterActions,
+  useActiveActions,
+} from './commands/ScopedActionRegistryProvider.js'
+export type {
+  ScopedActionRegistryContextValue,
+  ScopedActionRegistryProviderProps,
+} from './commands/ScopedActionRegistryProvider.js'
 export { CommandPalette } from './components/CommandPalette.js'
 export type { CommandPaletteProps } from './components/CommandPalette.js'
 export { NodeProcessRunner } from './commands/ProcessRunner.js'
@@ -92,12 +123,25 @@ export type {
   CommandSessionAPI,
   OutputLine,
 } from './commands/useCommandSession.js'
+export { AsyncSessionRunner } from './commands/AsyncSessionRunner.js'
+export type {
+  SessionStatus as AsyncSessionStatus,
+  SessionOptions as AsyncSessionOptions,
+  SessionEvent,
+  SessionLifecycle,
+} from './commands/AsyncSessionRunner.js'
+export { useAsyncSession } from './commands/useAsyncSession.js'
+export type { UseAsyncSessionOptions } from './commands/useAsyncSession.js'
 export { CommandBar } from './components/CommandBar.js'
 export type { CommandBarProps } from './components/CommandBar.js'
 export { ProcessOutputPanel } from './components/ProcessOutputPanel.js'
 export type { ProcessOutputPanelProps } from './components/ProcessOutputPanel.js'
 export { ModalProvider, useModal } from './components/ModalProvider.js'
 export type { ModalProviderProps } from './components/ModalProvider.js'
+export { ModalDialog } from './components/ModalDialog.js'
+export type { ModalDialogProps } from './components/ModalDialog.js'
+export { ConfirmCancel } from './components/ConfirmCancel.js'
+export type { ConfirmCancelProps } from './components/ConfirmCancel.js'
 export { ConfirmModal } from './components/ConfirmModal.js'
 export type { ConfirmModalProps } from './components/ConfirmModal.js'
 export { ConfirmDialog, useConfirmDialog } from './components/ConfirmDialog.js'
@@ -110,7 +154,29 @@ export { List } from './components/List.js'
 export type { ListItem, ListProps } from './components/List.js'
 export { SearchInput } from './components/SearchInput.js'
 export type { SearchInputProps } from './components/SearchInput.js'
+export { TextInput } from './components/TextInput.js'
+export type { TextInputProps } from './components/TextInput.js'
+export { NumberInput } from './components/NumberInput.js'
+export type { NumberInputProps } from './components/NumberInput.js'
+export { CommandInput } from './components/CommandInput.js'
+export type { CommandInputProps } from './components/CommandInput.js'
 export { SelectableList } from './components/SelectableList.js'
 export type { SelectableListProps } from './components/SelectableList.js'
+export { ChoicePrompt } from './components/ChoicePrompt.js'
+export type { ChoiceItem, ChoicePromptProps } from './components/ChoicePrompt.js'
+export { StepFlow } from './components/StepFlow.js'
+export type { Step, StepContext, StepFlowProps } from './components/StepFlow.js'
+export { ListSelect } from './components/ListSelect.js'
+export type { ListSelectItem, ListSelectProps } from './components/ListSelect.js'
+export { OptionGrid } from './components/OptionGrid.js'
+export type { OptionGridOption, OptionGridProps } from './components/OptionGrid.js'
+export { RadioList } from './components/RadioList.js'
+export type { RadioListOption, RadioListProps } from './components/RadioList.js'
+export { detectCollisions } from './commands/CollisionDetector.js'
+export type { CollisionWarning } from './commands/CollisionDetector.js'
+export { EventTracer } from './interaction/EventTracer.js'
+export type { TraceEntry } from './interaction/EventTracer.js'
+export { KeyboardDebugInspector } from './interaction/KeyboardDebugInspector.js'
+export type { KeyboardDebugInspectorProps } from './interaction/KeyboardDebugInspector.js'
 
 export * as experimental from './experimental/index.js'

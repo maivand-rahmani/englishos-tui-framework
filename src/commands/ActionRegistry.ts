@@ -1,15 +1,37 @@
+import type { FocusScope } from '../types.js'
+
 export interface Action {
   id: string
   label: string
   description?: string
   category: string
   handler: () => void
+  /** Original shortcut (kept for backward compat). */
   shortcut?: string
+  /** Keys that trigger this action, e.g. ['b'], ['enter'], ['ctrl+p']. */
+  keys?: string[]
+  /** Scope this action belongs to (for keyboard routing). */
+  scope?: FocusScope
+  /** Whether the action can be triggered (can be a function for dynamic state). */
+  enabled?: boolean | (() => boolean)
+  /** Whether the action shows in footers/help. */
+  visible?: boolean | (() => boolean)
+  /** Display group for organizing footer hints. */
+  group?: string
 }
 
 export interface ActionMatch {
   action: Action
   score: number
+}
+
+function resolveToggle(
+  value: boolean | (() => boolean) | undefined,
+  defaultVal: boolean,
+): boolean {
+  if (value === undefined) return defaultVal
+  if (typeof value === 'function') return value()
+  return value
 }
 
 function fuzzyScore(query: string, target: string): number {
@@ -87,5 +109,19 @@ export class ActionRegistry {
     }
 
     return results.sort((a, b) => b.score - a.score)
+  }
+
+  getVisibleActions(): Action[] {
+    return this.getAll().filter((a) => resolveToggle(a.visible, true))
+  }
+
+  getActionsByScope(scope: FocusScope): Action[] {
+    return this.getAll().filter((a) => a.scope === scope)
+  }
+
+  isActionAvailable(id: string): boolean {
+    const action = this.actions.get(id)
+    if (!action) return false
+    return resolveToggle(action.enabled, true)
   }
 }
