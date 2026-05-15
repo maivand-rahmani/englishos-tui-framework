@@ -1,12 +1,12 @@
-# @maivandrahmani/englishos-tui-framework
+# runeframe
 
 Reusable Ink/React framework for building terminal applications.
-Version 0.4.2
+Version 0.4.4
 
 ## Install
 
 ```bash
-npm install @maivandrahmani/englishos-tui-framework
+npm install runeframe
 ```
 
 Peer dependencies: `ink ^7.0.2`, `react ^19.2.5`.
@@ -23,7 +23,7 @@ import {
   ScreenRegistry,
   ScreenRenderer,
   useNavigationState,
-} from '@maivandrahmani/englishos-tui-framework'
+} from 'runeframe'
 
 const registry = new ScreenRegistry()
 registry.register({
