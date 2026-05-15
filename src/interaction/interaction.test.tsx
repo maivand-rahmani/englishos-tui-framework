@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { render } from 'ink-testing-library'
 import { Text } from 'ink'
-import { useState } from 'react'
+import { useState, useContext, useEffect } from 'react'
+import type { ReactElement, ReactNode } from 'react'
 import {
   KeyboardScopeProvider,
   useKeyboardScope,
@@ -9,9 +10,9 @@ import {
 import { useInputInScope, useKeyHandler, useKeyBinding } from './useInputInScope.js'
 import { FocusScope, useFocusScope } from './FocusScope.js'
 import { useFocusable } from './useFocusable.js'
+import { useFocusZone, useFocusGroup, useFocusableV2, FocusTreeProvider, FocusZoneContext } from './FocusTreeProvider.js'
 import { InputConsumptionResult } from '../types.js'
 import type { NormalizedKeyEvent } from '../types.js'
-import type { ReactElement } from 'react'
 
 function renderUI(ui: ReactElement) {
   return render(ui)
@@ -680,5 +681,421 @@ describe('useKeyBinding', () => {
     await delay()
     expect(boundCalls).toContain('bound')
     expect(fallbackCalls).not.toContain('fallback')
+  })
+})
+
+describe('FocusTreeProvider & Focus Hierarchy', () => {
+  function ZoneHarness({
+    zoneId,
+    children,
+  }: {
+    zoneId: string
+    children: ReactNode
+  }) {
+    const { ZoneProvider } = useFocusZone(zoneId, { scope: 'navigation' })
+    return <ZoneProvider>{children}</ZoneProvider>
+  }
+
+  function GroupHarness({
+    groupId,
+    children,
+  }: {
+    groupId: string
+    children: ReactNode
+  }) {
+    const { GroupProvider } = useFocusGroup(groupId, { scope: 'navigation' })
+    return <GroupProvider>{children}</GroupProvider>
+  }
+
+  function FocusableItem({ id, label }: { id: string; label: string }) {
+    const { focused, isFirst, isLast } = useFocusableV2({ id })
+    return (
+      <Text>
+        {label}
+        {focused ? '*' : ''} f={String(isFirst)} l={String(isLast)}
+      </Text>
+    )
+  }
+
+  it('useFocusZone provides zone context to children', () => {
+    const { lastFrame } = renderUI(
+      <KeyboardScopeProvider>
+        <ZoneHarness zoneId="main">
+          <GroupHarness groupId="list">
+            <FocusableItem id="a" label="Alpha" />
+          </GroupHarness>
+        </ZoneHarness>
+      </KeyboardScopeProvider>,
+    )
+    expect(lastFrame()).toContain('Alpha')
+  })
+
+  it('useFocusableV2 reports focused state in a group', async () => {
+    function TestGroup() {
+      const { GroupProvider, focusedId } = useFocusGroup('items', {
+        autoFocus: true,
+        scope: 'navigation',
+      })
+      return (
+        <GroupProvider>
+          <Text>focusedId={focusedId ?? 'none'}</Text>
+          <FocusableItem id="one" label="One" />
+          <FocusableItem id="two" label="Two" />
+        </GroupProvider>
+      )
+    }
+
+    const { lastFrame } = renderUI(
+      <KeyboardScopeProvider>
+        <ZoneHarness zoneId="main">
+          <TestGroup />
+        </ZoneHarness>
+      </KeyboardScopeProvider>,
+    )
+
+    await delay()
+    const frame = lastFrame()
+    expect(frame).toContain('focusedId=none')
+  })
+
+  it('useFocusGroup arrow down moves focus forward', async () => {
+    function TestGroup() {
+      const { GroupProvider } = useFocusGroup('items', {
+        autoFocus: true,
+        scope: 'navigation',
+      })
+      return (
+        <GroupProvider>
+          <FocusableItem id="first" label="First" />
+          <FocusableItem id="second" label="Second" />
+          <FocusableItem id="third" label="Third" />
+        </GroupProvider>
+      )
+    }
+
+    const { lastFrame, stdin } = renderUI(
+      <KeyboardScopeProvider>
+        <ZoneHarness zoneId="main">
+          <TestGroup />
+        </ZoneHarness>
+      </KeyboardScopeProvider>,
+    )
+
+    await delay()
+    expect(lastFrame()).toContain('Third')
+
+    stdin.write('\u001b[B')
+    await delay()
+    expect(lastFrame()).toContain('First*')
+
+    stdin.write('\u001b[B')
+    await delay()
+    expect(lastFrame()).toContain('Second*')
+
+    stdin.write('\u001b[B')
+    await delay()
+    expect(lastFrame()).toContain('Third*')
+  })
+
+  it('useFocusGroup arrow up moves focus backward and wraps', async () => {
+    function TestGroup() {
+      const { GroupProvider } = useFocusGroup('items', {
+        scope: 'navigation',
+      })
+      return (
+        <GroupProvider>
+          <FocusableItem id="a" label="A" />
+          <FocusableItem id="b" label="B" />
+          <FocusableItem id="c" label="C" />
+        </GroupProvider>
+      )
+    }
+
+    const { lastFrame, stdin } = renderUI(
+      <KeyboardScopeProvider>
+        <ZoneHarness zoneId="main">
+          <TestGroup />
+        </ZoneHarness>
+      </KeyboardScopeProvider>,
+    )
+
+    await delay()
+
+    stdin.write('\u001b[B')
+    await delay()
+    expect(lastFrame()).toContain('A*')
+
+    stdin.write('\u001b[B')
+    await delay()
+    expect(lastFrame()).toContain('B*')
+
+    stdin.write('\u001b[A')
+    await delay()
+    expect(lastFrame()).toContain('A*')
+
+    stdin.write('\u001b[A')
+    await delay()
+    expect(lastFrame()).toContain('C*')
+  })
+
+  it('useFocusGroup arrow down wraps at bottom', async () => {
+    function TestGroup() {
+      const { GroupProvider } = useFocusGroup('items', {
+        scope: 'navigation',
+      })
+      return (
+        <GroupProvider>
+          <FocusableItem id="x" label="X" />
+          <FocusableItem id="y" label="Y" />
+        </GroupProvider>
+      )
+    }
+
+    const { lastFrame, stdin } = renderUI(
+      <KeyboardScopeProvider>
+        <ZoneHarness zoneId="main">
+          <TestGroup />
+        </ZoneHarness>
+      </KeyboardScopeProvider>,
+    )
+
+    await delay()
+
+    stdin.write('\u001b[B')
+    await delay()
+    expect(lastFrame()).toContain('X*')
+
+    stdin.write('\u001b[B')
+    await delay()
+    expect(lastFrame()).toContain('Y*')
+
+    stdin.write('\u001b[B')
+    await delay()
+    expect(lastFrame()).toContain('X*')
+  })
+
+  it('useFocusableV2 reports isFirst and isLast', async () => {
+    function TestGroup() {
+      const { GroupProvider } = useFocusGroup('items', {
+        scope: 'navigation',
+      })
+      return (
+        <GroupProvider>
+          <FocusableItem id="a" label="A" />
+          <FocusableItem id="b" label="B" />
+          <FocusableItem id="c" label="C" />
+        </GroupProvider>
+      )
+    }
+
+    const { lastFrame } = renderUI(
+      <KeyboardScopeProvider>
+        <ZoneHarness zoneId="main">
+          <TestGroup />
+        </ZoneHarness>
+      </KeyboardScopeProvider>,
+    )
+
+    await delay()
+    const frame = lastFrame()
+    expect(frame).toContain('A f=true l=false')
+    expect(frame).toContain('B f=false l=false')
+    expect(frame).toContain('C f=false l=true')
+  })
+
+  it('useFocusableV2 returns inert state outside a group', () => {
+    function OrphanItem() {
+      const { focused, isFirst, isLast } = useFocusableV2({ id: 'orphan' })
+      return (
+        <Text>
+          orphan focused={String(focused)} f={String(isFirst)} l={String(isLast)}
+        </Text>
+      )
+    }
+
+    const { lastFrame } = renderUI(
+      <KeyboardScopeProvider>
+        <OrphanItem />
+      </KeyboardScopeProvider>,
+    )
+
+    expect(lastFrame()).toContain('orphan focused=false f=false l=false')
+  })
+
+  it('zone tracks active group and deepest focusable', async () => {
+    const deepest: string[] = []
+
+    function TestGroup() {
+      const { GroupProvider, focusedId } = useFocusGroup('items', {
+        autoFocus: true,
+        scope: 'navigation',
+      })
+
+      useEffect(() => {
+        if (focusedId) deepest.push(focusedId)
+      }, [focusedId])
+
+      return (
+        <GroupProvider>
+          <FocusableItem id="one" label="One" />
+          <FocusableItem id="two" label="Two" />
+        </GroupProvider>
+      )
+    }
+
+    const { stdin } = renderUI(
+      <KeyboardScopeProvider>
+        <ZoneHarness zoneId="main">
+          <TestGroup />
+        </ZoneHarness>
+      </KeyboardScopeProvider>,
+    )
+
+    await delay()
+
+    stdin.write('\u001b[B')
+    await delay()
+
+    stdin.write('\u001b[B')
+    await delay()
+
+    expect(deepest).toContain('one')
+    expect(deepest).toContain('two')
+  })
+
+  it('useFocusGroup activate() makes zone active group', async () => {
+    function Activator() {
+      const ctx = useContext(FocusZoneContext)
+      return (
+        <Text>activeGroup={ctx?.activeGroupId ?? 'noctx'}</Text>
+      )
+    }
+
+    let groupActivate: (() => void) | null = null
+
+    function GroupWithActivator() {
+      const result = useFocusGroup('manual', { scope: 'navigation' })
+      groupActivate = result.activate
+      const { GroupProvider } = result
+      return (
+        <GroupProvider>
+          <Text>active={String(result.isActive)}</Text>
+          <FocusableItem id="x" label="X" />
+        </GroupProvider>
+      )
+    }
+
+    const { lastFrame } = renderUI(
+      <KeyboardScopeProvider>
+        <ZoneHarness zoneId="main">
+          <GroupWithActivator />
+          <Activator />
+        </ZoneHarness>
+      </KeyboardScopeProvider>,
+    )
+
+    await delay()
+    expect(lastFrame()).toContain('activeGroup=manual')
+
+    expect(groupActivate).not.toBeNull()
+    groupActivate!()
+    await delay()
+    expect(lastFrame()).toContain('active=true')
+  })
+
+  it('useFocusableV2 onActivate focuses the item', async () => {
+    let activateB: (() => void) | null = null
+
+    function ClickableB() {
+      const { onActivate, focused } = useFocusableV2({ id: 'b' })
+      activateB = onActivate
+      return <Text>bFocused={String(focused)}</Text>
+    }
+
+    function TestGroup() {
+      const { GroupProvider, focusedId } = useFocusGroup('items', {
+        scope: 'navigation',
+      })
+      return (
+        <GroupProvider>
+          <Text>focused={focusedId ?? 'none'}</Text>
+          <FocusableItem id="a" label="A" />
+          <FocusableItem id="b" label="B" />
+          <ClickableB />
+        </GroupProvider>
+      )
+    }
+
+    const { lastFrame } = renderUI(
+      <KeyboardScopeProvider>
+        <ZoneHarness zoneId="main">
+          <TestGroup />
+        </ZoneHarness>
+      </KeyboardScopeProvider>,
+    )
+
+    await delay()
+
+    expect(activateB).not.toBeNull()
+    activateB!()
+    await delay()
+    expect(lastFrame()).toContain('bFocused=true')
+  })
+
+  it('nested zone→group→focusable works end-to-end', async () => {
+    function NestedApp() {
+      const { ZoneProvider } = useFocusZone('app', { scope: 'navigation' })
+      const { GroupProvider } = useFocusGroup('menu', {
+        autoFocus: true,
+        scope: 'navigation',
+      })
+      return (
+        <ZoneProvider>
+          <GroupProvider>
+            <FocusableItem id="home" label="Home" />
+            <FocusableItem id="settings" label="Settings" />
+            <FocusableItem id="about" label="About" />
+          </GroupProvider>
+        </ZoneProvider>
+      )
+    }
+
+    const { lastFrame, stdin } = renderUI(
+      <KeyboardScopeProvider>
+        <NestedApp />
+      </KeyboardScopeProvider>,
+    )
+
+    await delay()
+    expect(lastFrame()).toContain('Home')
+    expect(lastFrame()).toContain('Settings')
+    expect(lastFrame()).toContain('About')
+
+    stdin.write('\u001b[B')
+    await delay()
+    expect(lastFrame()).toContain('Home*')
+
+    stdin.write('\u001b[B')
+    await delay()
+    expect(lastFrame()).toContain('Settings*')
+
+    stdin.write('\u001b[B')
+    await delay()
+    expect(lastFrame()).toContain('About*')
+
+    stdin.write('\u001b[B')
+    await delay()
+    expect(lastFrame()).toContain('Home*')
+  })
+
+  it('FocusTreeProvider wraps children in zone context', () => {
+    const { lastFrame } = renderUI(
+      <KeyboardScopeProvider>
+        <FocusTreeProvider defaultScope="navigation">
+          <Text>inside tree</Text>
+        </FocusTreeProvider>
+      </KeyboardScopeProvider>,
+    )
+    expect(lastFrame()).toContain('inside tree')
   })
 })

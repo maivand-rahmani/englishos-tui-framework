@@ -75,6 +75,24 @@ export { FocusScope, useFocusScope } from './interaction/FocusScope.js'
 export type { FocusScopeProps, FocusScopeContextValue } from './interaction/FocusScope.js'
 export { useFocusable } from './interaction/useFocusable.js'
 export type { UseFocusableOptions, UseFocusableResult } from './interaction/useFocusable.js'
+export {
+  FocusTreeProvider,
+  FocusZoneContext,
+  useFocusZone,
+  useFocusGroup,
+  useFocusableV2,
+} from './interaction/FocusTreeProvider.js'
+export type {
+  FocusZoneContextValue,
+  FocusGroupContextValue,
+  UseFocusZoneOptions,
+  UseFocusZoneResult,
+  UseFocusGroupOptions,
+  UseFocusGroupResult,
+  UseFocusableV2Options,
+  UseFocusableV2Result,
+  FocusTreeProviderProps,
+} from './interaction/FocusTreeProvider.js'
 export { RegionProvider, useRegionContext, useFocusableRegion } from './interaction/RegionProvider.js'
 export type { RegionFocusContextValue, UseFocusableRegionResult, RegionProviderProps } from './interaction/RegionProvider.js'
 export { useInputInRegion, useScopedInputInRegion } from './interaction/useInputInRegion.js'
