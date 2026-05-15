@@ -1,7 +1,7 @@
 # @maivandrahmani/englishos-tui-framework
 
 Reusable Ink/React framework for building terminal applications.
-Version 0.4.1
+Version 0.4.2
 
 ## Install
 

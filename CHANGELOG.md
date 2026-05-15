@@ -1,6 +1,6 @@
 # englishos-tui-framework
 
-## 0.4.1
+## 0.4.2
 
 ### Fix infinite render loop in useRegisterActions
 - **Fixed** `useRegisterActions` infinite render loop with inline action arrays. Empty dep array breaks the `register → bump → re-render → new inline array → re-register → loop` cycle.
