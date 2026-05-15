@@ -62,7 +62,8 @@ export type {
   SidebarItem,
   SidebarSectionTitles,
 } from './components/Sidebar.js'
-export { KeyboardScopeProvider, useKeyboardScope } from './interaction/KeyboardScopeProvider.js'
+export { KeyboardScopeProvider, useKeyboardScope, useShellSuspension } from './interaction/KeyboardScopeProvider.js'
+export type { ScopeStackEntry } from './interaction/KeyboardScopeProvider.js'
 export { useInputInScope } from './interaction/useInputInScope.js'
 export { useScopedInputInScope } from './interaction/useInputInScope.js'
 export type {
