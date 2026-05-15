@@ -1,6 +1,10 @@
 {
   "name": "@maivandrahmani/englishos-tui-framework",
-  "version": "0.4.2",
+  "version": "0.4.3",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/maivand-rahmani/englishos-tui-framework.git"
+  },
   "private": false,
   "type": "module",
   "main": "./dist/index.cjs",
@@ -28,7 +32,8 @@
     "node": ">=18.0.0"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   },
   "scripts": {
     "build": "tsup src/index.ts src/experimental/index.ts --format esm,cjs --dts --sourcemap --clean",
@@ -38,7 +43,7 @@
     "pack:check": "npm run build && npm pack --dry-run",
     "changeset": "changeset",
     "changeset:version": "changeset version",
-    "publish:release": "npm publish --provenance --access public",
+    "publish:release": "npm publish --access public",
     "publish:beta": "npm publish --tag beta --provenance --access public"
   },
   "dependencies": {
