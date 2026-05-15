@@ -1,5 +1,12 @@
 # englishos-tui-framework
 
+## 0.4.1
+
+### Fix infinite render loop in useRegisterActions
+
+- **Fixed** `useRegisterActions` causing infinite render loop when called with inline action arrays inside `ScopedActionRegistryProvider`. Root cause: `[actions]` effect dependency created a cycle — register → `bump()` → provider re-render → consumer re-render → new inline array → effect cleanup unregisters + bump → effect setup registers + bump → provider re-render → loop.
+- **Fix**: Empty dependency array (actions captured once at mount). Action definitions that change should re-mount via `key` prop. All 593 tests pass.
+
 ## 0.4.0
 
 ### Major framework refactor — input architecture, action system, widget primitives, diagnostics
