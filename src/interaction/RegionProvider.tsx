@@ -8,7 +8,9 @@ import {
   useEffect,
   type ReactNode,
 } from 'react'
-import { useScopedInputInScope } from './useInputInScope.js'
+import { useKeyHandler } from './useInputInScope.js'
+import { InputConsumptionResult } from '../types.js'
+import { FocusTreeProvider } from './FocusTreeProvider.js'
 
 export interface RegionDefinition {
   id: string
@@ -91,8 +93,9 @@ export function useFocusableRegion(
 /**
  * Provider that manages interactive focus regions.
  *
- * Place inside a `<KeyboardScopeProvider>` (it uses `useScopedInputInScope`
- * to intercept Tab/Shift+Tab for region cycling).
+ * Place inside a `<KeyboardScopeProvider>`. Internally wraps children in
+ * `<FocusTreeProvider>` and uses `useKeyHandler` to intercept Tab/Shift+Tab
+ * for region cycling through the focus tree model.
  */
 export function RegionProvider({
   children,
@@ -169,15 +172,20 @@ export function RegionProvider({
     setActiveRegionId(ids[prevIdx])
   }, [])
 
-  useScopedInputInScope(
+  useKeyHandler(
     (event) => {
-      if (regionSetRef.current.size < 2) return
+      if (regionSetRef.current.size < 2) return InputConsumptionResult.NotConsumed
 
-      if (event.key.tab) {
-        event.key.shift ? cycleToPrevRegion() : cycleToNextRegion()
-        event.stopPropagation()
-        return true
+      if (event.tab) {
+        if (event.shift) {
+          cycleToPrevRegion()
+        } else {
+          cycleToNextRegion()
+        }
+        return InputConsumptionResult.Consumed
       }
+
+      return InputConsumptionResult.NotConsumed
     },
     'navigation',
     { priority: 100 },
@@ -205,9 +213,11 @@ export function RegionProvider({
   )
 
   return (
-    <RegionFocusContext.Provider value={value}>
-      {children}
-    </RegionFocusContext.Provider>
+    <FocusTreeProvider defaultScope="navigation">
+      <RegionFocusContext.Provider value={value}>
+        {children}
+      </RegionFocusContext.Provider>
+    </FocusTreeProvider>
   )
 }
 
