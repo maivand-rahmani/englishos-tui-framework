@@ -81,6 +81,7 @@ export function KeyboardScopeProvider({
   scopeEntriesRef.current = scopeEntries
   const registrationCounterRef = useRef(0)
 
+  const scopeCountRef = useRef<Map<FocusScope, number>>(new Map())
   const [shellSuspended, setShellSuspended] = useState(false)
   const shellSuspendedRef = useRef(false)
 
@@ -178,6 +179,9 @@ export function KeyboardScopeProvider({
   }, [])
 
   const pushScope = useCallback((scope: FocusScope) => {
+    const counts = scopeCountRef.current
+    const current = counts.get(scope) ?? 0
+    counts.set(scope, current + 1)
     setScopeEntries((prev) => {
       if (prev.some((e) => e.id === scope)) return prev
       return [...prev, defaultScopeEntry(scope)]
@@ -185,12 +189,25 @@ export function KeyboardScopeProvider({
   }, [])
 
   const popScope = useCallback((scope?: FocusScope) => {
-    setScopeEntries((prev) => {
-      if (prev.length <= 1) return prev
-      if (scope == null) return prev.slice(0, -1)
-      const next = prev.filter((candidate) => candidate.id !== scope)
-      return next.length === 0 ? prev : next
-    })
+    if (scope == null) {
+      setScopeEntries((prev) => {
+        if (prev.length <= 1) return prev
+        return prev.slice(0, -1)
+      })
+      return
+    }
+    const counts = scopeCountRef.current
+    const current = counts.get(scope) ?? 0
+    if (current <= 1) {
+      counts.delete(scope)
+      setScopeEntries((prev) => {
+        if (prev.length <= 1) return prev
+        const next = prev.filter((candidate) => candidate.id !== scope)
+        return next.length === 0 ? prev : next
+      })
+    } else {
+      counts.set(scope, current - 1)
+    }
   }, [])
 
   const isScopeActive = useCallback(

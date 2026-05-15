@@ -1,5 +1,17 @@
 # englishos-tui-framework
 
+## 0.4.2
+
+### Fix infinite render loop in useRegisterActions
+- **Fixed** `useRegisterActions` infinite render loop with inline action arrays. Empty dep array breaks the `register → bump → re-render → new inline array → re-register → loop` cycle.
+- Action definitions that change should re-mount via `key` prop.
+
+### Fix keyboard dispatch scoping — auto-push/pop scopes on handler registration
+- **Fixed** widgets (ChoicePrompt, ListSelect, OptionGrid, RadioList, NumberInput) not receiving keyboard input. Widgets register handlers for `'list'`/`'textinput'` scopes but these scopes were never pushed onto the scope stack, so the dispatch loop never checked them.
+- **Root cause**: `KeyboardScopeProvider` dispatch only iterates scopes in the stack (scopeEntries). `useInputRegistration` only called `registerHandler()` but never `pushScope()`. With shell suspension (`suspendShell()`) silencing `'navigation'`, no handlers fired.
+- **Fix**: `useInputRegistration` now calls `pushScope(scope)` on mount and `popScope(scope)` on cleanup. `KeyboardScopeProvider` pushScope/popScope now use reference counting (`scopeCountRef`) so nested components registering for the same scope don't collide — popScope only removes from the stack when the count reaches zero.
+- All 593 tests pass.
+
 ## 0.4.0
 
 ### Major framework refactor — input architecture, action system, widget primitives, diagnostics

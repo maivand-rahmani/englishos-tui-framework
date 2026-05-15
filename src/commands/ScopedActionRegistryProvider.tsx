@@ -106,10 +106,18 @@ export function useScopedActionRegistry(): ScopedActionRegistryContextValue {
 export function useRegisterActions(actions: Action[]): void {
   const ctx = useScopedActionRegistry()
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const cleanup = ctx.registerActions(actions)
-    return cleanup
-  }, [actions])
+    return () => cleanup?.()
+  }, [])
+  // Actions captured once at mount to prevent infinite render loops.
+  // All callers pass inline array literals which create new references
+  // on every render. The old [actions] dep caused: register → bump →
+  // provider re-render → consumer re-render → new inline array →
+  // effect cleanup unregisters + bump → effect setup registers + bump →
+  // provider re-render → ... infinite loop.
+  // If action definitions need to change, re-mount via key prop.
 }
 
 export function useActiveActions(): Action[] {
