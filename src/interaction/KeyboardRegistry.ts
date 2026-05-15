@@ -1,3 +1,4 @@
+import type { Action } from '../commands/ActionRegistry.js'
 import type { FocusScope } from '../types.js'
 import { getScopePriority } from '../constants.js'
 
@@ -8,6 +9,14 @@ export interface Keybinding {
   description: string
 }
 
+/**
+ * @deprecated Use `ActionRegistry` from `../commands/ActionRegistry.js` instead.
+ * The `ActionRegistry` provides a unified action model with scope-aware keyboard
+ * routing, visibility/enabled toggles, and footer integration.
+ *
+ * Existing code will continue to work. Use `keyboardRegistryToActions()` to
+ * bridge your existing `KeyboardRegistry` to the new `Action` model.
+ */
 export class KeyboardRegistry {
   private bindings = new Map<string, Keybinding>()
 
@@ -58,4 +67,18 @@ export class KeyboardRegistry {
       (a, b) => this.getScopePriority(a.scope) - this.getScopePriority(b.scope),
     )
   }
+}
+
+export function keyboardRegistryToActions(
+  registry: KeyboardRegistry,
+): Action[] {
+  return registry.getAll().map((binding) => ({
+    id: binding.description.toLowerCase().replace(/\s+/g, '-'),
+    label: binding.description,
+    description: binding.description,
+    category: 'system' as const,
+    handler: binding.handler,
+    keys: [binding.keys],
+    scope: binding.scope,
+  }))
 }

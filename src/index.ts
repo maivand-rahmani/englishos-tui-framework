@@ -99,6 +99,16 @@ export { useInputInRegion, useScopedInputInRegion } from './interaction/useInput
 export type { LegacyInputHandler as LegacyRegionInputHandler, ScopedInputHandler as ScopedRegionInputHandler } from './interaction/useInputInRegion.js'
 export { ActionRegistry } from './commands/ActionRegistry.js'
 export type { Action, ActionMatch } from './commands/ActionRegistry.js'
+export {
+  ScopedActionRegistryProvider,
+  useScopedActionRegistry,
+  useRegisterActions,
+  useActiveActions,
+} from './commands/ScopedActionRegistryProvider.js'
+export type {
+  ScopedActionRegistryContextValue,
+  ScopedActionRegistryProviderProps,
+} from './commands/ScopedActionRegistryProvider.js'
 export { CommandPalette } from './components/CommandPalette.js'
 export type { CommandPaletteProps } from './components/CommandPalette.js'
 export { NodeProcessRunner } from './commands/ProcessRunner.js'
