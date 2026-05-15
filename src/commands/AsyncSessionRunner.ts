@@ -166,6 +166,7 @@ export class AsyncSessionRunner {
 
   private _cleanupProcess(): void {
     if (this._process) {
+      this._exited = true
       this._process.kill()
       this._process = null
     }
