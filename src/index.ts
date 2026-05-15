@@ -123,6 +123,15 @@ export type {
   CommandSessionAPI,
   OutputLine,
 } from './commands/useCommandSession.js'
+export { AsyncSessionRunner } from './commands/AsyncSessionRunner.js'
+export type {
+  SessionStatus as AsyncSessionStatus,
+  SessionOptions as AsyncSessionOptions,
+  SessionEvent,
+  SessionLifecycle,
+} from './commands/AsyncSessionRunner.js'
+export { useAsyncSession } from './commands/useAsyncSession.js'
+export type { UseAsyncSessionOptions } from './commands/useAsyncSession.js'
 export { CommandBar } from './components/CommandBar.js'
 export type { CommandBarProps } from './components/CommandBar.js'
 export { ProcessOutputPanel } from './components/ProcessOutputPanel.js'
@@ -155,6 +164,8 @@ export { SelectableList } from './components/SelectableList.js'
 export type { SelectableListProps } from './components/SelectableList.js'
 export { ChoicePrompt } from './components/ChoicePrompt.js'
 export type { ChoiceItem, ChoicePromptProps } from './components/ChoicePrompt.js'
+export { StepFlow } from './components/StepFlow.js'
+export type { Step, StepContext, StepFlowProps } from './components/StepFlow.js'
 export { ListSelect } from './components/ListSelect.js'
 export type { ListSelectItem, ListSelectProps } from './components/ListSelect.js'
 export { OptionGrid } from './components/OptionGrid.js'
