@@ -1433,3 +1433,92 @@ describe('Shell Suspension', () => {
     expect(navCalls).toContain('r')
   })
 })
+
+// ── Guardrail: Scope Churn Regression ───────────────────────────────
+//
+// When useInputInScope couples pushScope/popScope and registerHandler in
+// a single useEffect, unstable deps (e.g. a recreated array every render
+// in Tabs/ListSelect) cause scope stack oscillation: the effect teardown
+// pops the scope, the setup pushes it back, the state change triggers a
+// re-render that recreates the deps, restarting the cycle indefinitely.
+
+describe('scope churn regression', () => {
+  it('does not churn scope stack on unstable deps', async () => {
+    const scopeSnapshots: string[][] = []
+    let producerRenderCount = 0
+
+    function ChurnConsumer({ items }: { items: string[] }) {
+      useInputInScope(
+        (_input, _key) => {},
+        'list',
+        { deps: [items] },
+      )
+      return null
+    }
+
+    function ChurnProducer() {
+      const { activeScopes } = useKeyboardScope()
+      void activeScopes
+      producerRenderCount++
+      const items = ['a']
+      return <ChurnConsumer items={items} />
+    }
+
+    function ScopeObserver() {
+      const { activeScopes } = useKeyboardScope()
+      scopeSnapshots.push([...activeScopes])
+      return null
+    }
+
+    function Harness() {
+      return (
+        <KeyboardScopeProvider>
+          <ChurnProducer />
+          <ScopeObserver />
+        </KeyboardScopeProvider>
+      )
+    }
+
+    renderUI(<Harness />)
+    await delay(100)
+
+    // Buggy code produces 30+ renders (pop→push oscillation).
+    // Fixed code caps at ≤2 renders (one initial + one scope push).
+    expect(producerRenderCount).toBeLessThanOrEqual(10)
+    expect(scopeSnapshots.length).toBeLessThanOrEqual(10)
+  })
+
+  it('does not churn when deps are stable (false-positive guard)', async () => {
+    const scopeSnapshots: string[][] = []
+
+    function StableConsumer() {
+      useInputInScope(
+        (_input, _key) => {},
+        'list',
+        { deps: [] },
+      )
+      return null
+    }
+
+    function ScopeObserver() {
+      const { activeScopes } = useKeyboardScope()
+      scopeSnapshots.push([...activeScopes])
+      return null
+    }
+
+    function Harness() {
+      return (
+        <KeyboardScopeProvider>
+          <StableConsumer />
+          <ScopeObserver />
+        </KeyboardScopeProvider>
+      )
+    }
+
+    renderUI(<Harness />)
+    await delay(100)
+
+    // Stable deps: 1 initial render + 1 pushScope re-render = 2 snapshots max.
+    expect(scopeSnapshots.length).toBeLessThanOrEqual(3)
+  })
+})

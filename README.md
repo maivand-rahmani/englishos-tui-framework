@@ -1,7 +1,7 @@
 # runeframe
 
 Reusable Ink/React framework for building terminal applications.
-Version 0.4.4
+Version 0.4.5
 
 ## Install
 
@@ -60,7 +60,7 @@ render(<App />)
 
 1. **`ThemeProvider`** — provides design tokens (colors, spacing, typography). Accepts a `themeMode` prop (`'dark'` | `'light'`, default `'dark'`).
 2. **`KeyboardScopeProvider`** — manages the scope stack for keyboard event dispatch. Accepts `defaultScope` (default `'navigation'`).
-3. **`RegionProvider`** (optional, opt-in via `withRegionProvider`) — adds focus region switching (Tab cycles between regions).
+3. **`RegionProvider`** (optional, opt-in via `withRegionProvider`) — adds focus region switching. Tab/Shift+Tab cycle through all regions. Left/Right arrows switch directionally: right moves sidebar→content, left moves content→sidebar.
 4. **`NavigationProvider`** — screen registry and navigation state management.
 5. **`ToastProvider`** (optional, opt-in via `withToastProvider`, default `true`) — toast notification system.
 6. **`ModalProvider`** (optional, opt-in via `withModalProvider`, default `true`) — modal dialog management.
@@ -674,7 +674,7 @@ const { openModal, closeModal } = useModalActions()
 
 | Component | Props | Description |
 |-----------|-------|-------------|
-| **`AppShell`** | `topBar`, `sidebar?`, `children` | Top-level app layout with optional sidebar. |
+| **`AppShell`** | `topBar`, `sidebar?`, `children`, `sidebarPosition?`, `scrollContent?` | Top-level app layout with optional sidebar. `sidebarPosition='fixed'` keeps sidebar absolute. `scrollContent=true` enables keyboard-driven viewport scrolling (requires `sidebarPosition='fixed'`). |
 | **`TopBar`** | `appName`, `screenTitle`, `children?` | Application header bar. |
 | **`StatusBar`** | `shortcuts?`, `registry?` | Bottom status bar (legacy shortcuts prop supported, or use registry). |
 | **`Panel`** | `title`, `children`, `footer?` | Content panel with optional header/footer. |

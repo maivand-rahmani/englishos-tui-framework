@@ -3,15 +3,20 @@ import { render } from 'ink-testing-library'
 import { Text } from 'ink'
 import type { ReactElement } from 'react'
 import { ThemeProvider } from '../design-system/ThemeProvider.js'
+import { KeyboardScopeProvider } from '../interaction/KeyboardScopeProvider.js'
 import { AppShell } from './AppShell.js'
 
-function renderInTheme(ui: ReactElement) {
-  return render(<ThemeProvider>{ui}</ThemeProvider>)
+function renderInShell(ui: ReactElement) {
+  return render(
+    <KeyboardScopeProvider>
+      <ThemeProvider>{ui}</ThemeProvider>
+    </KeyboardScopeProvider>,
+  )
 }
 
 describe('AppShell', () => {
   it('renders children in content area', () => {
-    const { lastFrame } = renderInTheme(
+    const { lastFrame } = renderInShell(
       <AppShell columns={100}>
         <Text>Screen Content</Text>
       </AppShell>,
@@ -20,7 +25,7 @@ describe('AppShell', () => {
   })
 
   it('renders TopBar when provided', () => {
-    const { lastFrame } = renderInTheme(
+    const { lastFrame } = renderInShell(
       <AppShell columns={100} topBar={<Text>App Title</Text>}>
         <Text>Content</Text>
       </AppShell>,
@@ -29,7 +34,7 @@ describe('AppShell', () => {
   })
 
   it('renders Sidebar when provided and wide', () => {
-    const { lastFrame } = renderInTheme(
+    const { lastFrame } = renderInShell(
       <AppShell columns={100} sidebar={<Text>Navigation</Text>}>
         <Text>Content</Text>
       </AppShell>,
@@ -39,7 +44,7 @@ describe('AppShell', () => {
   })
 
   it('renders StatusBar when provided', () => {
-    const { lastFrame } = renderInTheme(
+    const { lastFrame } = renderInShell(
       <AppShell columns={100} statusBar={<Text>Ctrl+C Quit</Text>}>
         <Text>Content</Text>
       </AppShell>,
@@ -48,7 +53,7 @@ describe('AppShell', () => {
   })
 
   it('renders all four regions together', () => {
-    const { lastFrame } = renderInTheme(
+    const { lastFrame } = renderInShell(
       <AppShell
         columns={120}
         topBar={<Text>Top</Text>}
@@ -66,7 +71,7 @@ describe('AppShell', () => {
   })
 
   it('renders without TopBar', () => {
-    const { lastFrame } = renderInTheme(
+    const { lastFrame } = renderInShell(
       <AppShell columns={100}>
         <Text>Content Only</Text>
       </AppShell>,
@@ -75,7 +80,7 @@ describe('AppShell', () => {
   })
 
   it('renders without Sidebar', () => {
-    const { lastFrame } = renderInTheme(
+    const { lastFrame } = renderInShell(
       <AppShell columns={100}>
         <Text>No Sidebar</Text>
       </AppShell>,
@@ -84,7 +89,7 @@ describe('AppShell', () => {
   })
 
   it('renders without StatusBar', () => {
-    const { lastFrame } = renderInTheme(
+    const { lastFrame } = renderInShell(
       <AppShell columns={100}>
         <Text>No Status</Text>
       </AppShell>,
@@ -93,7 +98,7 @@ describe('AppShell', () => {
   })
 
   it('hides sidebar on narrow terminal (< 80 cols)', () => {
-    const { lastFrame } = renderInTheme(
+    const { lastFrame } = renderInShell(
       <AppShell columns={70} sidebar={<Text>Nav</Text>}>
         <Text>Content</Text>
       </AppShell>,
@@ -103,7 +108,7 @@ describe('AppShell', () => {
   })
 
   it('shows sidebar at medium width (80-99 cols)', () => {
-    const { lastFrame } = renderInTheme(
+    const { lastFrame } = renderInShell(
       <AppShell columns={90} sidebar={<Text>Nav</Text>}>
         <Text>Main</Text>
       </AppShell>,
@@ -113,7 +118,7 @@ describe('AppShell', () => {
   })
 
   it('shows sidebar at wide width (>= 100 cols)', () => {
-    const { lastFrame } = renderInTheme(
+    const { lastFrame } = renderInShell(
       <AppShell columns={120} sidebar={<Text>Side</Text>}>
         <Text>Main Content Area</Text>
       </AppShell>,
@@ -123,7 +128,7 @@ describe('AppShell', () => {
   })
 
   it('treats exactly 80 as medium (sidebar visible)', () => {
-    const { lastFrame } = renderInTheme(
+    const { lastFrame } = renderInShell(
       <AppShell columns={80} sidebar={<Text>Side</Text>}>
         <Text>Main</Text>
       </AppShell>,
@@ -132,7 +137,7 @@ describe('AppShell', () => {
   })
 
   it('treats exactly 100 as wide (sidebar visible)', () => {
-    const { lastFrame } = renderInTheme(
+    const { lastFrame } = renderInShell(
       <AppShell columns={100} sidebar={<Text>Side</Text>}>
         <Text>Main</Text>
       </AppShell>,
@@ -142,7 +147,7 @@ describe('AppShell', () => {
   })
 
   it('treats 79 as narrow (sidebar hidden)', () => {
-    const { lastFrame } = renderInTheme(
+    const { lastFrame } = renderInShell(
       <AppShell columns={79} sidebar={<Text>Side</Text>}>
         <Text>Main</Text>
       </AppShell>,
@@ -151,7 +156,7 @@ describe('AppShell', () => {
   })
 
   it('handles undefined window size gracefully', () => {
-    const { lastFrame } = renderInTheme(
+    const { lastFrame } = renderInShell(
       <AppShell sidebar={<Text>Side</Text>}>
         <Text>Main</Text>
       </AppShell>,

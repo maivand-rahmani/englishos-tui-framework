@@ -51,18 +51,25 @@ function useInputRegistration(
   const deps = options.deps ?? []
   const enabled = options.enabled ?? true
 
+  // Scope lifecycle: only push/pop when scope or enabled changes.
+  // Separated from handler registration so unstable deps do NOT
+  // cause scope stack oscillation.
   useEffect(() => {
     if (!enabled) return
     pushScope(scope)
+    return () => popScope(scope)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scope, pushScope, popScope, enabled])
+
+  // Handler registration: re-register only when handler/deps change.
+  useEffect(() => {
+    if (!enabled) return
     const unregister = registerHandler(scope, handler, {
       priority: options.priority,
     })
-    return () => {
-      unregister()
-      popScope(scope)
-    }
+    return unregister
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scope, registerHandler, pushScope, popScope, enabled, options.priority, ...deps])
+  }, [scope, registerHandler, enabled, options.priority, ...deps])
 }
 
 export function useInputInScope(

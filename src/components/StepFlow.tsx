@@ -129,7 +129,7 @@ export function StepFlow({
       }
       return InputConsumptionResult.NotConsumed
     },
-    'navigation',
+    'stepflow',
     { deps: [goNext, goBack] },
   )
 
