@@ -33,11 +33,23 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
-      - name: Test
+      - name: Unit tests
         run: npm run test
+
+      - name: Full integration matrix
+        run: npm run test:integration:full
 
       - name: Build
         run: npm run build
+
+      - name: Upload integration evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-integration-evidence
+          path: |
+            examples/__tests__/__snapshots__/
+          retention-days: 7
 
       - name: Create Release PR or Publish
         uses: changesets/action@v1

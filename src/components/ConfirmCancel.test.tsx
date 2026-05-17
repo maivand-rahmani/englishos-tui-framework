@@ -87,6 +87,7 @@ describe('ConfirmCancel', () => {
     await delay()
 
     expect(onConfirm).toHaveBeenCalledTimes(1)
+    expect(onCancel).not.toHaveBeenCalled()
   })
 
   it('calls onCancel when Escape is pressed', async () => {
