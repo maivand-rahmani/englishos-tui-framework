@@ -1,20 +1,15 @@
-name: Release
+name: Nightly Integration
 
 on:
-  push:
-    branches:
-      - main
+  schedule:
+    - cron: '0 6 * * *'
   workflow_dispatch:
 
-permissions:
-  contents: write
-  pull-requests: write
-  id-token: write
-
 jobs:
-  release:
+  full-matrix:
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -22,13 +17,10 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 24
-          registry-url: https://registry.npmjs.org
-          cache: npm
-
+          node-version: 22
 
       - name: Install
-        run: npm ci
+        run: npm install
 
       - name: Typecheck
         run: npm run typecheck
@@ -46,15 +38,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: release-integration-evidence
+          name: integration-evidence
           path: |
             examples/__tests__/__snapshots__/
           retention-days: 7
-
-      - name: Create Release PR or Publish
-        uses: changesets/action@v1
-        with:
-          version: npm run changeset:version
-          publish: npm run publish:release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

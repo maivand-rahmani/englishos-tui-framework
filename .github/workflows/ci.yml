@@ -6,6 +6,10 @@ on:
     branches:
       - main
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test-build:
     runs-on: ubuntu-latest
@@ -26,8 +30,12 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
-      - name: Test
+      - name: Unit tests
         run: npm run test
+
+      - name: Integration smoke (advisory)
+        run: npm run test:integration:smoke
+        continue-on-error: true
 
       - name: Build
         run: npm run build
