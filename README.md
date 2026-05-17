@@ -755,6 +755,69 @@ Detection algorithm:
 | **`RunningProcess`** | Represents a running process instance. |
 | **`useCommandSession`** | Legacy combined command session hook. |
 
+## Testing
+
+The framework includes both unit tests and integration tests.
+
+### Running Tests
+
+```bash
+# Unit tests (widgets, providers, utilities — 600+ tests)
+npm run test
+
+# Fast PR smoke suite (quickstart full-stack render + utilities)
+npm run test:integration:smoke
+
+# Full integration matrix (all composed-behavior scenarios)
+npm run test:integration:full
+```
+
+### Integration Test Harness
+
+Integration tests use `vitest` + `ink-testing-library` with a dedicated config:
+
+- **Isolated workers** (`pool: 'forks'`) — prevents Ink scope/singleton collisions
+- **ANSI normalization** — `normalizeFrame()` strips escape codes for deterministic snapshots
+- **Fixed terminal width** — `COLUMNS=80` for reproducible output
+- **Retry policy** — automatic retry (1x) for flakiness tolerance
+
+### Test Structure
+
+```
+examples/__tests__/
+  integration-helpers.test.tsx   — Utility sanity checks
+  quickstart.test.tsx             — Full-stack smoke (PR gate)
+  practice-flow.test.tsx          — Multi-step wizard E2E
+  command-console.test.tsx        — Console UI render test
+  hotspot-regressions.test.tsx    — Cross-component regression suite
+```
+
+### Shared Test Utilities
+
+Import from `test/integration-helpers.js`:
+
+| Utility | Purpose |
+|---------|---------|
+| `normalizeFrame(frame)` | Strip ANSI codes from terminal output |
+| `renderApp(ui)` | Render an Ink component for testing |
+| `typeSequence(stdin, keys, delayMs)` | Simulate keyboard input sequence |
+| `delay(ms)` | Wait for React batching |
+| `appendEvidence(path, content)` | Write scenario log for CI artifacts |
+
+### CI Workflows
+
+| Workflow | Trigger | Scope |
+|----------|---------|-------|
+| `ci.yml` | PR + push to main | Typecheck → unit tests → **advisory smoke integration** → build → pack |
+| `release.yml` | Release branch | Typecheck → unit tests → **full integration matrix** → build → publish |
+| `nightly.yml` | Scheduled (daily) + manual | Full integration matrix with evidence artifact upload (7-day retention) |
+
+The smoke integration gate runs with `continue-on-error` in Phase 1 (advisory). It will become a required check once the suite proves stable.
+
+### Example Fixtures
+
+The three demo apps in `examples/` have been refactored into shared modules in `examples/apps/` so integration tests can import the `App` component without triggering Ink `render()` side effects. The entrypoints (`examples/*.tsx`) remain unchanged and independently runnable. |
+
 ## Toast Notifications
 
 ```tsx
