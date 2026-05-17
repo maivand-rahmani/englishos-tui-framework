@@ -1,5 +1,22 @@
 # englishos-tui-framework
 
+## 0.4.5
+
+### Scope churn fix, region navigation, scroll support, integration testing
+
+- **Fixed** scope registration churn in `useInputRegistration` — split into separate scope lifecycle and handler registration effects to prevent infinite render loops from unstable dependency arrays.
+- **Fixed** `ConfirmCancel` Enter handler calling both `onConfirm` and `onCancel` — Enter now only confirms as intended. Test hardened with negative assertion.
+- **Added** left/right arrow region switching in `RegionProvider` (sidebar↔content) in addition to Tab/Shift+Tab cycling.
+- **Added** opt-in AppShell props: `sidebarPosition='fixed'` for absolute sidebar positioning and `scrollContent={true}` for keyboard-driven viewport scrolling.
+- **Isolated** StepFlow scope to `'stepflow'` to prevent arrow key conflicts with shell-level region switching.
+- **Added** dedicated integration testing suite with `vitest.integration.config.ts`, ANSI-normalized snapshots, and `npm run test:integration:smoke` / `npm run test:integration:full` scripts.
+- **Added** canonical example fixtures in `examples/apps/` that tests can import without triggering Ink `render()` side effects.
+- **Added** shared test utilities: `normalizeFrame`, `typeSequence`, `renderApp`, `appendEvidence`, `MockProcessRunner`.
+- **Added** end-to-end coverage: quickstart full-stack smoke, FrameworkProvider composition matrix (5 tests), practice-flow wizard (multi-step stdin), command-console render, and hotspot regression suite (AppShell+Sidebar, Modal+Toast, RegionProvider+Focus, HotkeyHintBar+ScopedActionRegistry).
+- **Wired** CI gates: PR advisory smoke, release full matrix, nightly scheduled workflow, evidence artifact upload (7-day retention).
+- **Updated** all example entrypoints to import from shared app modules without behavioral changes.
+- Backward compatible — all existing APIs unchanged; new AppShell features are opt-in only.
+
 ## 0.4.2
 
 ### Fix infinite render loop in useRegisterActions
