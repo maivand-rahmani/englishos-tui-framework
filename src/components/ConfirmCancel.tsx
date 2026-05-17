@@ -36,7 +36,6 @@ export function ConfirmCancel({
     (event) => {
       if (event.enter) {
         onConfirmRef.current()
-        onCancelRef.current()
         return InputConsumptionResult.Consumed
       }
       if (event.escape) {
