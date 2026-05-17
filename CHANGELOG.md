@@ -1,5 +1,17 @@
 # englishos-tui-framework
 
+## 0.4.6
+
+### Patch Changes
+
+- [#21](https://github.com/maivand-rahmani/runeframe/pull/21) [`19fcf44`](https://github.com/maivand-rahmani/runeframe/commit/19fcf4418a3efd397d034c99f7c0cfd1e5f86e78) Thanks [@maivand-rahmani](https://github.com/maivand-rahmani)! - Fix input scope registration churn, add directional region navigation, add opt-in scroll support
+
+  - Split useInputRegistration into separate scope lifecycle and handler registration effects to prevent infinite render loops caused by unstable dependency arrays.
+  - RegionProvider now handles left/right arrow navigation (sidebar↔content) in addition to Tab/Shift+Tab region cycling.
+  - StepFlow scope isolated to 'stepflow' to prevent arrow conflicts with shell-level region switching.
+  - AppShell gains opt-in props: `sidebarPosition='fixed'` for absolute sidebar positioning and `scrollContent={true}` for keyboard-driven viewport scrolling (requires fixed sidebar).
+  - All existing APIs remain backward compatible; new AppShell features are opt-in only.
+
 ## 0.4.5
 
 ### Scope churn fix, region navigation, scroll support, integration testing
@@ -20,10 +32,12 @@
 ## 0.4.2
 
 ### Fix infinite render loop in useRegisterActions
+
 - **Fixed** `useRegisterActions` infinite render loop with inline action arrays. Empty dep array breaks the `register → bump → re-render → new inline array → re-register → loop` cycle.
 - Action definitions that change should re-mount via `key` prop.
 
 ### Fix keyboard dispatch scoping — auto-push/pop scopes on handler registration
+
 - **Fixed** widgets (ChoicePrompt, ListSelect, OptionGrid, RadioList, NumberInput) not receiving keyboard input. Widgets register handlers for `'list'`/`'textinput'` scopes but these scopes were never pushed onto the scope stack, so the dispatch loop never checked them.
 - **Root cause**: `KeyboardScopeProvider` dispatch only iterates scopes in the stack (scopeEntries). `useInputRegistration` only called `registerHandler()` but never `pushScope()`. With shell suspension (`suspendShell()`) silencing `'navigation'`, no handlers fired.
 - **Fix**: `useInputRegistration` now calls `pushScope(scope)` on mount and `popScope(scope)` on cleanup. `KeyboardScopeProvider` pushScope/popScope now use reference counting (`scopeCountRef`) so nested components registering for the same scope don't collide — popScope only removes from the stack when the count reaches zero.
@@ -42,6 +56,7 @@
 - **Shell Integration**: Added `useShellSuspension()` hook for component-level hotkey gating. Added `HotkeyHintBar` for auto-generated footer hints from registered actions. `StatusBar` extended with optional registry integration.
 
 - **Widget Primitives (10 new)**:
+
   - `ChoicePrompt` — letter-key shortcuts (`a/b/c/d`) + arrow navigation, auto shell suspension
   - `ListSelect` — vertical selectable list with wrapping focus
   - `OptionGrid` — horizontal grid selector with 4-way arrow navigation
