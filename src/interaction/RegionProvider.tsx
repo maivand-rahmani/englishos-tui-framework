@@ -172,6 +172,11 @@ export function RegionProvider({
     setActiveRegionId(ids[prevIdx])
   }, [])
 
+  // Directional arrow helpers: right → sidebar→content, left → content→sidebar
+  const moveToRegion = useCallback((id: string) => {
+    setActiveRegionId(id)
+  }, [])
+
   useKeyHandler(
     (event) => {
       if (regionSetRef.current.size < 2) return InputConsumptionResult.NotConsumed
@@ -183,6 +188,27 @@ export function RegionProvider({
           cycleToNextRegion()
         }
         return InputConsumptionResult.Consumed
+      }
+
+      // Directional region switching: right = sidebar→content, left = content→sidebar
+      if (event.right) {
+        const ids = Array.from(regionSetRef.current)
+        const current = activeRegionIdRef.current
+        if (current === 'sidebar' && ids.includes('content')) {
+          moveToRegion('content')
+          return InputConsumptionResult.Consumed
+        }
+        return InputConsumptionResult.NotConsumed
+      }
+
+      if (event.left) {
+        const ids = Array.from(regionSetRef.current)
+        const current = activeRegionIdRef.current
+        if (current === 'content' && ids.includes('sidebar')) {
+          moveToRegion('sidebar')
+          return InputConsumptionResult.Consumed
+        }
+        return InputConsumptionResult.NotConsumed
       }
 
       return InputConsumptionResult.NotConsumed
