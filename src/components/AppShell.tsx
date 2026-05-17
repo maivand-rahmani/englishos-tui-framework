@@ -1,7 +1,9 @@
-import type { ReactNode } from 'react'
+import { useState, useCallback, useRef, type ReactNode } from 'react'
 import { Box, useWindowSize } from 'ink'
 import { useTheme } from '../design-system/ThemeProvider.js'
 import { LAYOUT } from '../constants.js'
+import { useKeyHandler } from '../interaction/useInputInScope.js'
+import { InputConsumptionResult } from '../types.js'
 
 export interface AppShellProps {
   /** Optional top bar (app name, screen title, date) */
@@ -47,11 +49,50 @@ export function AppShell({
   const isFixedSidebar = sidebarPosition === 'fixed' && showSidebar
   const isScrollable = scrollContent && isFixedSidebar
 
+  // Viewport scroll state
+  const { rows } = useWindowSize()
+  const viewportHeight = Math.max(1, Math.min(rows ?? 24, (rows ?? 24) - 3))
+  const [scrollOffset, setScrollOffset] = useState(0)
+  const scrollOffsetRef = useRef(scrollOffset)
+  scrollOffsetRef.current = scrollOffset
+
+  // Maximum scroll offset is capped at a reasonable ceiling for the MVP.
+  // In a full implementation, this would be derived from measured content height.
+  const MAX_SCROLL = 200
+  const scrollStep = 1
+
+  const scrollUp = useCallback(() => {
+    setScrollOffset((prev) => Math.max(0, prev - scrollStep))
+  }, [])
+
+  const scrollDown = useCallback(() => {
+    setScrollOffset((prev) => Math.min(MAX_SCROLL, prev + scrollStep))
+  }, [])
+
+  // Keyboard scroll controls — only active in scrollable mode
+  // Registered at 'navigation' scope so deeper-scope widgets consume arrows first.
+  useKeyHandler(
+    (event) => {
+      if (!isScrollable) return InputConsumptionResult.NotConsumed
+      if (event.up) {
+        scrollUp()
+        return InputConsumptionResult.Consumed
+      }
+      if (event.down) {
+        scrollDown()
+        return InputConsumptionResult.Consumed
+      }
+      return InputConsumptionResult.NotConsumed
+    },
+    'navigation',
+    { deps: [isScrollable, scrollUp, scrollDown], priority: 50 },
+  )
+
   // Fixed sidebar + scrollable content uses absolute positioning for sidebar
   // and wraps content in a viewport-height container.
   if (isFixedSidebar) {
     return (
-      <Box flexDirection="column" {...(isScrollable ? { height: '100%' } : {})}>
+      <Box flexDirection="column">
         {topBar != null && (
           <Box marginBottom={theme.spacing.sm}>{topBar}</Box>
         )}
@@ -65,9 +106,15 @@ export function AppShell({
           <Box
             flexGrow={1}
             marginLeft={showSidebar ? SIDEBAR_WIDTH : 0}
-            {...(isScrollable ? { height: `100%`, overflow: 'hidden' } : {})}
+            {...(isScrollable
+              ? { height: viewportHeight, overflow: 'hidden' as const }
+              : {})}
           >
-            {children}
+            {isScrollable ? (
+              <Box marginTop={-scrollOffset}>{children}</Box>
+            ) : (
+              children
+            )}
           </Box>
         </Box>
 
